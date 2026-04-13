@@ -24,9 +24,8 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: user.user_id }, jwtSecret, { expiresIn: '4h' });
-
-    res.json({ token, user: { user_id: user.user_id, nama: user.nama, jabatan:user.jabatan, role:user.role } });
+    const token = jwt.sign({ id: user.user_id, role: user.role }, jwtSecret, { expiresIn: '4h' });
+    res.json({ token, user: { nama: user.nama, jabatan:user.jabatan, role:user.role } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

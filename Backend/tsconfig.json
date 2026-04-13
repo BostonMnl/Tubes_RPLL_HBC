@@ -13,7 +13,8 @@
     "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0"
   },
   "include": ["API/**/*", "models/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts", "migrations", "config/config.js"]
