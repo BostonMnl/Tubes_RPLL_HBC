@@ -1,0 +1,30 @@
+.# Dependency directories
+node_modules/
+
+# pnpm specific
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# Environment variables 
+.env
+.env.local
+
+# TypeScript build output
+dist/
+out/
+*.tsbuildinfo
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# PostgreSQL / Local DB logs
+logfile
+pg.log
+.pgdata/
+
+# OS specific files
+.DS_Store
+Thumbs.db
