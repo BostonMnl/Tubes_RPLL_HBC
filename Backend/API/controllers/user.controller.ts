@@ -1,10 +1,7 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/user';
-import bcrypt from 'bcrypt';
-import {
-	createPasswordResetToken,
-	consumePasswordResetToken,
-} from '../utils/passwordReset';
+import { ResetPasswordRequest } from '../../models/resetPasswordRequest';
+import { ApiResponse } from '../middlewares/response.middleware';
 
 type AuthenticatedRequest = Request & {
 	auth?: {
@@ -13,32 +10,31 @@ type AuthenticatedRequest = Request & {
 	};
 };
 
-// export const forgotPassword = async (req: Request, res: Response) => {
-// 	try {
-// 		const { email } = req.body;
+export const forgotPassword = async (
+	req: AuthenticatedRequest,
+	_res: Response
+): Promise<ApiResponse> => {
+	if (!req.auth?.id) {
+		throw { code: 401, message: 'Unauthorized' };
+	}
 
-// 		if (!email) {
-// 			res.status(400).json({ message: 'Email is required' });
-// 			return;
-// 		}
+	const existingRequest = await ResetPasswordRequest.findOne({
+		where: { user_id: req.auth.id, deleted_at: null },
+	});
 
-// 		const user = await User.findOne({ where: { email } });
-// 		let resetToken: string | undefined;
+	if (existingRequest) {
+		throw { code: 400, message: 'Request already made' };
+	}
 
-// 		if (user && !user.deletedAt) {
-// 			// In production, send this token through email instead of response body.
-// 			resetToken = createPasswordResetToken(user.user_id);
-// 		}
+	await ResetPasswordRequest.create({
+		user_id: req.auth.id,
+	});
 
-// 		res.json({
-// 			message: 'If the email exists, a reset link has been generated',
-// 			resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
-// 		});
-// 	} catch (error) {
-// 		console.error(error);
-// 		res.status(500).json({ message: 'Server error' });
-// 	}
-// };
+	return {
+		code: 200,
+		message: 'Reset request has been created',
+	};
+};
 
 // export const resetPassword = async (req: Request, res: Response) => {
 // 	try {
@@ -76,65 +72,77 @@ type AuthenticatedRequest = Request & {
 // 	}
 // };
 
-export const getMyProfile = async (req: AuthenticatedRequest, res: Response) => {
-	try {
-		if (!req.auth?.id) {
-			res.status(401).json({ message: 'Unauthorized' });
-			return;
-		}
-
-		const user = await User.findByPk(req.auth.id, {
-			attributes: ['user_id', 'nama', 'email', 'alamat', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen'],
-		});
-
-		if (!user || user.deletedAt) {
-			res.status(404).json({ message: 'User not found' });
-			return;
-		}
-
-		res.json({ user });
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ message: 'Server error' });
+export const getMyProfile = async (
+	req: AuthenticatedRequest,
+	_res: Response
+): Promise<ApiResponse<{ user: User }>> => {
+	if (!req.auth?.id) {
+		throw { code: 401, message: 'Unauthorized' };
 	}
+
+	const user = await User.findByPk(req.auth.id, {
+		attributes: ['user_id', 'nama', 'email', 'alamat', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen'],
+	});
+
+	if (!user || user.deletedAt) {
+		throw { code: 404, message: 'User not found' };
+	}
+
+	return {
+		code: 200,
+		message: 'Profile fetched successfully',
+		data: { user },
+	};
 };
 
-export const updateMyProfile = async (req: AuthenticatedRequest, res: Response) => {
-	try {
-		if (!req.auth?.id) {
-			res.status(401).json({ message: 'Unauthorized' });
-			return;
-		}
+export const updateMyProfile = async (
+	req: AuthenticatedRequest,
+	_res: Response
+): Promise<
+	ApiResponse<{
+		user: {
+			user_id: string;
+			nama: string;
+			email: string;
+			alamat: string | null;
+			nomor_telepon: string | null;
+			gambar: string | null;
+		};
+	}>
+> => {
+	if (!req.auth?.id) {
+		throw { code: 401, message: 'Unauthorized' };
+	}
 
-		const { alamat, nomor_telepon, gambar } = req.body;
+	const { alamat, nomor_telepon, gambar } = req.body;
 
-		if (alamat === undefined && nomor_telepon === undefined && gambar === undefined) {
-			res.status(400).json({ message: 'Nothing to update' });
-			return;
-		}
+	if (alamat === undefined && nomor_telepon === undefined && gambar === undefined) {
+		throw { code: 400, message: 'Nothing to update' };
+	}
 
-		const user = await User.findByPk(req.auth.id);
-		if (!user || user.deletedAt) {
-			res.status(404).json({ message: 'User not found' });
-			return;
-		}
+	const user = await User.findByPk(req.auth.id);
+	if (!user || user.deletedAt) {
+		throw { code: 404, message: 'User not found' };
+	}
 
-		if (alamat !== undefined) {
-			user.alamat = alamat;
-		}
+	if (alamat !== undefined) {
+		user.alamat = alamat;
+	}
 
-		if (nomor_telepon !== undefined) {
-			user.nomor_telepon = nomor_telepon;
-		}
+	if (nomor_telepon !== undefined) {
+		user.nomor_telepon = nomor_telepon;
+	}
 
-		if (gambar !== undefined) {
-			user.gambar = gambar;
-		}
+	if (gambar !== undefined) {
+		user.gambar = gambar;
+	}
 
-		await user.save();
+	await user.save();
 
-		res.json({
-			message: 'Profile updated successfully',
+	return {
+		code: 200,
+		message: 'Profile updated successfully',
+		data: {
 			user: {
 				user_id: user.user_id,
 				nama: user.nama,
@@ -143,10 +151,7 @@ export const updateMyProfile = async (req: AuthenticatedRequest, res: Response) 
 				nomor_telepon: user.nomor_telepon,
 				gambar: user.gambar,
 			},
-		});
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ message: 'Server error' });
-	}
+		},
+	};
 };
 
