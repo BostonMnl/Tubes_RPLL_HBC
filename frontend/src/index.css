@@ -1,0 +1,16 @@
+:root {
+  --bs-primary: #ff6b9d;
+  --bs-primary-rgb: 255, 107, 157;
+
+  --bs-body-bg: #ffffff;
+  --bs-body-color: #333;
+
+  --bs-secondary: #ffe3ec;
+  --bs-light: #fff5f8;
+
+  --bs-border-color: #ffd6e2; 
+}
+
+.nav-link:hover {
+  background-color: #ffe6ee;
+}

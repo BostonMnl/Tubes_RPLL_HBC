@@ -1,48 +1,45 @@
-import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  ShoppingBag, 
-  FileText, 
-  Settings, 
-  HelpCircle,
-  BarChart3,
-  Target
-} from 'lucide-react';
-import './Sidebar.css';
+import { Nav } from 'react-bootstrap';
+import {
+  BsSpeedometer2,
+  BsPeople,
+  BsCalendar,
+  BsBarChart,
+  BsCashStack
+} from 'react-icons/bs';
 
-const Sidebar = () => {
-  const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', active: true },
-    { icon: Users, label: 'Customers' },
-    { icon: ShoppingBag, label: 'Deals' },
-    { icon: Target, label: 'Leads' },
-    { icon: BarChart3, label: 'Analytics' },
-    { icon: FileText, label: 'Reports' },
-    { icon: Settings, label: 'Settings' },
-    { icon: HelpCircle, label: 'Help' },
+type SidebarProps = {
+  active: string;
+  setActive: (value: string) => void;
+};
+
+export default function Sidebar({ active, setActive }: SidebarProps) {
+
+  const menu = [
+    { key: 'dashboard', label: 'Dashboard', icon: <BsSpeedometer2 /> },
+    { key: 'user', label: 'User', icon: <BsPeople /> },
+    { key: 'calendar', label: 'Calendar View', icon: <BsCalendar /> },
+    { key: 'hr', label: 'HR Stats', icon: <BsBarChart /> },
+    { key: 'wage', label: 'Setting Wage', icon: <BsCashStack /> },
   ];
 
   return (
-    <div className="sidebar">
-      <div className="logo">
-        <div className="logo-icon">CRM</div>
-        <h2>PinkCRM</h2>
-      </div>
-      <nav className="nav-menu">
-        {menuItems.map((item, index) => (
-          <a 
-            key={index} 
-            href="#" 
-            className={`nav-item ${item.active ? 'active' : ''}`}
+    <div style={{ width: 250, background: '#fff' }} className="p-3 shadow-sm">
+      <h4 className="text-primary fw-bold">HBCOMPANY</h4>
+
+      <Nav className="flex-column mt-4">
+        {menu.map(item => (
+          <Nav.Link
+            key={item.key}
+            onClick={() => setActive(item.key)}
+            className={`d-flex align-items-center gap-2 mb-2 rounded ${
+              active === item.key ? 'bg-primary text-white' : ''
+            }`}
           >
-            <item.icon size={20} />
-            <span>{item.label}</span>
-          </a>
+            <span style={{ fontSize: '18px' }}>{item.icon}</span>
+            {item.label}
+          </Nav.Link>
         ))}
-      </nav>
+      </Nav>
     </div>
   );
-};
-
-export default Sidebar;
+}

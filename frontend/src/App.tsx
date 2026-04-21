@@ -1,39 +1,33 @@
-import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
-import StatsCard from "./components/StatsCard";
-import SalesChart from "./components/SalesChart";
-import TopProducts from "./components/TopProducts";
-import RecentActivities from "./components/RecentActivities";
-import "./App.css";
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { useState } from 'react';
+import Sidebar from './components/Sidebar';
+import Topbar from './components/TopBar';
+import DashboardHome from './components/DashboardHome';
+import UserPage from './components/UserPage';
+import CalendarView from './components/CalendarView';
+import HRStats from './components/HRStats';
+import WageSettings from './components/WageSettings';
 
-function App() {
+export default function App() {
+  const [active, setActive] = useState('dashboard');
+
+  const renderPage = () => {
+    switch (active) {
+      case 'user': return <UserPage />;
+      case 'calendar': return <CalendarView />;
+      case 'hr': return <HRStats />;
+      case 'wage': return <WageSettings />;
+      default: return <DashboardHome />;
+    }
+  };
+
   return (
-    <div className="app">
-      <Sidebar />
-
-      <div className="main">
-        <Header />
-
-        <div className="content">
-          <h1 className="title">Dashboard</h1>
-
-          <div className="stats-grid">
-            <StatsCard title="Total Users" value="1,240" change="+12%" icon="users" />
-            <StatsCard title="Revenue" value="$34,500" change="+8%" icon="dollar" />
-            <StatsCard title="Deals" value="320" change="-3%" icon="deals" />
-            <StatsCard title="Growth" value="18%" change="+5%" icon="chart" />
-          </div>
-
-          <div className="grid-2">
-            <SalesChart />
-            <RecentActivities />
-          </div>
-
-          <TopProducts />
-        </div>
+    <div className="d-flex" style={{ minHeight: '100vh' }}>
+      <Sidebar active={active} setActive={setActive} />
+      <div className="flex-grow-1">
+        <Topbar />
+        <div className="p-4">{renderPage()}</div>
       </div>
     </div>
   );
 }
-
-export default App;
