@@ -33,8 +33,10 @@ module.exports = {
         references: {
           model: 'user',
           key: 'user_id'
-      }
-    },
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
       gaji_id: {
         type: Sequelize.UUID,
         allowNull: true,
@@ -42,6 +44,8 @@ module.exports = {
           model: 'gaji',
           key: 'gaji_id'
         },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
       createdAt: {
         type: Sequelize.DATE,

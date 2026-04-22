@@ -11,6 +11,16 @@ module.exports = {
         unique: true,
         defaultValue: Sequelize.UUIDV4
       },
+      user_id: {
+        type: Sequelize.UUID,
+        allowNull: false,
+        references: {
+          model: 'user',
+          key: 'user_id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
       nominal:{
         type: Sequelize.FLOAT,
         allowNull: false,
