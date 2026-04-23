@@ -40,14 +40,6 @@ export const resetPassword = async (
         throw { code: 400, message: 'Password must be at least 8 characters' };
     }
 
-    const resetRequest = await ResetPasswordRequest.findOne({
-        where: { user_id: id, deleted_at: null },
-    });
-
-    if (!resetRequest) {
-        throw { code: 400, message: "Request doesn't exist" };
-    }
-
     const user = await User.findByPk(id);
     if (!user || user.deletedAt) {
         throw { code: 404, message: 'User not found' };
@@ -55,9 +47,6 @@ export const resetPassword = async (
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
-
-    resetRequest.deleted_at = new Date();
-    await resetRequest.save();
 
     return {
         code: 200,

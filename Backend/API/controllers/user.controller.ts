@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/user';
-import { ResetPasswordRequest } from '../../models/resetPasswordRequest';
+import jwt from 'jsonwebtoken';
 import { ApiResponse } from '../middlewares/response.middleware';
+import { sendPasswordResetEmail } from '../utils/email';
 
 type AuthenticatedRequest = Request & {
 	auth?: {
@@ -11,66 +12,42 @@ type AuthenticatedRequest = Request & {
 };
 
 export const forgotPassword = async (
-	req: AuthenticatedRequest,
+	req: Request,
 	_res: Response
 ): Promise<ApiResponse> => {
-	if (!req.auth?.id) {
-		throw { code: 401, message: 'Unauthorized' };
+	const { email } = req.body as { email?: string };
+
+	if (!email) {
+		throw { code: 400, message: 'Email is required' };
 	}
 
-	const existingRequest = await ResetPasswordRequest.findOne({
-		where: { user_id: req.auth.id, deleted_at: null },
+	const user = await User.findOne({
+		where: { email },
+		attributes: ['nama', 'email'],
 	});
 
-	if (existingRequest) {
-		throw { code: 400, message: 'Request already made' };
+	if (!user || user.deletedAt) {
+		throw { code: 404, message: 'User not found' };
 	}
 
-	await ResetPasswordRequest.create({
-		user_id: req.auth.id,
+	const resetSecret = process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET || 'your-secret-key';
+	const resetToken = jwt.sign(
+		{ email: user.email, purpose: 'password_reset' },
+		resetSecret,
+		{ expiresIn: '15m' }
+	);
+
+	await sendPasswordResetEmail({
+		to: user.email,
+		nama: user.nama,
+		resetToken,
 	});
 
 	return {
 		code: 200,
-		message: 'Reset request has been created',
+		message: 'Password reset email has been sent',
 	};
 };
-
-// export const resetPassword = async (req: Request, res: Response) => {
-// 	try {
-// 		const { token, newPassword } = req.body;
-
-// 		if (!token || !newPassword) {
-// 			res.status(400).json({ message: 'Token and newPassword are required' });
-// 			return;
-// 		}
-
-// 		if (typeof newPassword !== 'string' || newPassword.length < 8) {
-// 			res.status(400).json({ message: 'Password must be at least 8 characters' });
-// 			return;
-// 		}
-
-// 		const userId = consumePasswordResetToken(token);
-// 		if (!userId) {
-// 			res.status(400).json({ message: 'Invalid or expired reset token' });
-// 			return;
-// 		}
-
-// 		const user = await User.findByPk(userId);
-// 		if (!user || user.deletedAt) {
-// 			res.status(404).json({ message: 'User not found' });
-// 			return;
-// 		}
-
-// 		user.password = await bcrypt.hash(newPassword, 10);
-// 		await user.save();
-
-// 		res.json({ message: 'Password has been reset successfully' });
-// 	} catch (error) {
-// 		console.error(error);
-// 		res.status(500).json({ message: 'Server error' });
-// 	}
-// };
 
 export const getMyProfile = async (
 	req: AuthenticatedRequest,
@@ -81,7 +58,7 @@ export const getMyProfile = async (
 	}
 
 	const user = await User.findByPk(req.auth.id, {
-		attributes: ['user_id', 'nama', 'email', 'alamat', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen'],
+		attributes: ['nama', 'email', 'alamat', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen'],
 	});
 
 	if (!user || user.deletedAt) {
@@ -101,7 +78,6 @@ export const updateMyProfile = async (
 ): Promise<
 	ApiResponse<{
 		user: {
-			user_id: string;
 			nama: string;
 			email: string;
 			alamat: string | null;
@@ -144,7 +120,6 @@ export const updateMyProfile = async (
 		message: 'Profile updated successfully',
 		data: {
 			user: {
-				user_id: user.user_id,
 				nama: user.nama,
 				email: user.email,
 				alamat: user.alamat,

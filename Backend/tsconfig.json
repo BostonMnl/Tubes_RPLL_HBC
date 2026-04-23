@@ -16,6 +16,6 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0"
   },
-  "include": ["API/**/*", "models/**/*"],
+  "include": ["API/**/*", "models/**/*", "Testing/unit-test/auth.controller.spec.ts"],
   "exclude": ["node_modules", "**/*.spec.ts", "migrations", "config/config.js"]
 }
