@@ -4,7 +4,7 @@ import { ResetPasswordRequest } from '../../models/resetPasswordRequest';
 import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
 import { UUIDV4 } from 'sequelize';
-import { isStrongPassword } from '../utils/helper.js';
+import { DEPARTEMEN_VALUES, isStrongPassword, JABATAN_VALUES, ROLE_VALUES } from '../utils/helper.js';
 
 type AuthenticatedRequest = Request & {
     auth?: {
@@ -22,10 +22,6 @@ const getParamId = (req: Request): string => {
 
     return id;
 };
-
-const JABATAN_VALUES = ['manager', 'staff', 'supervisor'] as const;
-const ROLE_VALUES = ['admin', 'staff'] as const;
-const DEPARTEMEN_VALUES = ['SALES', 'IT', 'FINANCE', 'PURCHASE'] as const;
 
 export const createUser = async (
     req: AuthenticatedRequest,
