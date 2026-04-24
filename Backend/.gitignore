@@ -1,11 +1,7 @@
-.# Dependency directories
+# Dependency directories
 node_modules/
 
-# pnpm specific
-pnpm-debug.log*
-.pnpm-debug.log*
-
-# Environment variables 
+# Environment variables
 .env
 .env.local
 
@@ -20,7 +16,7 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
-# PostgreSQL / Local DB logs
+# Local DB logs
 logfile
 pg.log
 .pgdata/

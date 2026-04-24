@@ -3,6 +3,8 @@ import { User } from '../../models/user';
 import { ResetPasswordRequest } from '../../models/resetPasswordRequest';
 import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
+import { UUIDV4 } from 'sequelize';
+import { isStrongPassword } from '../utils/helper.js';
 
 type AuthenticatedRequest = Request & {
     auth?: {
@@ -21,6 +23,137 @@ const getParamId = (req: Request): string => {
     return id;
 };
 
+const JABATAN_VALUES = ['manager', 'staff', 'supervisor'] as const;
+const ROLE_VALUES = ['admin', 'staff'] as const;
+const DEPARTEMEN_VALUES = ['SALES', 'IT', 'FINANCE', 'PURCHASE'] as const;
+
+export const createUser = async (
+    req: AuthenticatedRequest,
+    _res: Response
+): Promise<
+    ApiResponse<{
+        user: {
+            user_id: string;
+            nama: string;
+            email: string;
+            alamat: string;
+            tanggal_lahir: Date;
+            nomor_telepon: string | null;
+            gambar: string | null;
+            jabatan: string;
+            role: string;
+            departemen: string;
+        };
+    }>
+> => {
+    if (!req.auth?.id) {
+        throw { code: 401, message: 'Unauthorized' };
+    }
+
+    const {
+        nama,
+        alamat,
+        email,
+        tanggal_lahir,
+        nomor_telepon,
+        jabatan,
+        role,
+        departemen,
+        gambar,
+        password,
+    } = req.body as {
+        nama?: string;
+        alamat?: string;
+        email?: string;
+        tanggal_lahir?: string | Date;
+        nomor_telepon?: string;
+        jabatan?: string;
+        role?: string;
+        departemen?: string;
+        gambar?: string;
+        password?: string;
+    };
+
+    if (!nama || !alamat || !email || !tanggal_lahir || !jabatan || !role || !departemen || !password) {
+        throw {
+            code: 400,
+            message: 'Please input the mandatory fields',
+        };
+    }
+
+    const parsedTanggalLahir = new Date(tanggal_lahir);
+    if (Number.isNaN(parsedTanggalLahir.getTime())) {
+        throw { code: 400, message: 'tanggal_lahir must be a valid date' };
+    }
+
+    if (!isStrongPassword(password)) {
+        throw {
+            code: 400,
+            message:
+                'Password must be minimum 12 characters and include at least 1 uppercase, 1 number, and 1 symbol',
+        };
+    }
+
+    if (!JABATAN_VALUES.includes(jabatan as (typeof JABATAN_VALUES)[number])) {
+        throw {
+            code: 400,
+            message: `jabatan must be one of: ${JABATAN_VALUES.join(', ')}`,
+        };
+    }
+
+    if (!ROLE_VALUES.includes(role as (typeof ROLE_VALUES)[number])) {
+        throw {
+            code: 400,
+            message: `role must be one of: ${ROLE_VALUES.join(', ')}`,
+        };
+    }
+
+    if (!DEPARTEMEN_VALUES.includes(departemen as (typeof DEPARTEMEN_VALUES)[number])) {
+        throw {
+            code: 400,
+            message: `departemen must be one of: ${DEPARTEMEN_VALUES.join(', ')}`,
+        };
+    }
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+        throw { code: 409, message: 'Email already registered' };
+    }
+
+    const createdUser = await User.create({
+        user_id: UUIDV4(),
+        nama,
+        alamat,
+        email,
+        tanggal_lahir: parsedTanggalLahir,
+        nomor_telepon: nomor_telepon ?? null,
+        jabatan,
+        role,
+        departemen,
+        gambar: gambar ?? null,
+        password,
+    });
+
+    return {
+        code: 201,
+        message: 'User created successfully',
+        data: {
+            user: {
+                user_id: createdUser.user_id,
+                nama: createdUser.nama,
+                email: createdUser.email,
+                alamat: createdUser.alamat,
+                tanggal_lahir: createdUser.tanggal_lahir,
+                nomor_telepon: createdUser.nomor_telepon,
+                gambar: createdUser.gambar,
+                jabatan: createdUser.jabatan,
+                role: createdUser.role,
+                departemen: createdUser.departemen,
+            },
+        },
+    };
+};
+
 export const resetPassword = async (
     req: AuthenticatedRequest,
     _res: Response
@@ -36,8 +169,8 @@ export const resetPassword = async (
         throw { code: 400, message: 'newPassword is required' };
     }
 
-    if (typeof newPassword !== 'string' || newPassword.length < 8) {
-        throw { code: 400, message: 'Password must be at least 8 characters' };
+    if (typeof newPassword !== 'string' || newPassword.length < 12) {
+        throw { code: 400, message: 'Password must be at least 12 characters' };
     }
 
     const user = await User.findByPk(id);
@@ -65,7 +198,7 @@ export const getProfileId = async (
     const id = getParamId(req);
 
     const user = await User.findByPk(id, {
-        attributes: ['nama', 'email', 'alamat', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen', 'manager_id'],
+        attributes: ['nama', 'email', 'alamat', 'tanggal_lahir', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen', 'manager_id'],
     });
 
     if (!user || user.deletedAt) {
@@ -88,6 +221,7 @@ export const updateProfileById = async (
             nama: string;
             email: string;
             alamat: string | null;
+            tanggal_lahir: Date | string;
             nomor_telepon: string | null;
             gambar: string | null;
             jabatan: string;
@@ -107,6 +241,7 @@ export const updateProfileById = async (
         nama,
         email,
         alamat,
+        tanggal_lahir,
         nomor_telepon,
         gambar,
         jabatan,
@@ -117,6 +252,7 @@ export const updateProfileById = async (
         nama?: string;
         email?: string;
         alamat?: string;
+        tanggal_lahir?: Date | string;
         nomor_telepon?: string;
         gambar?: string;
         jabatan?: string;
@@ -125,38 +261,43 @@ export const updateProfileById = async (
         manager_id?: string;
     };
 
-    if (
-        nama === undefined &&
-        email === undefined &&
-        alamat === undefined &&
-        nomor_telepon === undefined &&
-        gambar === undefined &&
-        jabatan === undefined &&
-        role === undefined &&
-        departemen === undefined &&
-        manager_id === undefined
-    ) {
-        throw { code: 400, message: 'Data have already been saved' };
-    }
-
     const user = await User.findByPk(id);
     if (!user || user.deletedAt) {
         throw { code: 404, message: 'User not found' };
     }
 
-    if (role !== undefined && role !== 'admin' && role !== 'staff') {
+    if (nama === undefined || email === undefined || alamat === undefined || 
+        tanggal_lahir === undefined || jabatan === undefined || role === undefined || 
+        departemen === undefined || manager_id === undefined) {
+        throw { code: 401, message: 'Mandatory fields are missing' };
+    }
+
+    const parsedTanggalLahir = new Date(tanggal_lahir);
+    if (Number.isNaN(parsedTanggalLahir.getTime())) {
+        throw { code: 400, message: 'tanggal_lahir must be a valid date' };
+    }
+
+    if (role !== 'admin' && role !== 'staff') {
         throw { code: 400, message: 'role must be admin or staff' };
     }
 
-    if (nama !== undefined) user.nama = nama;
-    if (email !== undefined) user.email = email;
-    if (alamat !== undefined) user.alamat = alamat;
+    if (email !== user.email) {
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser && existingUser.user_id !== user.user_id) {
+            throw { code: 409, message: 'Email already registered' };
+        }
+    }
+
+    user.nama = nama;
+    user.email = email;
+    user.alamat = alamat;
+    user.tanggal_lahir = parsedTanggalLahir;
     if (nomor_telepon !== undefined) user.nomor_telepon = nomor_telepon;
-    if (gambar !== undefined) user.gambar = gambar;
-    if (jabatan !== undefined) user.jabatan = jabatan;
-    if (role !== undefined) user.role = role;
-    if (departemen !== undefined) user.departemen = departemen;
-    if (manager_id !== undefined) user.manager_id = manager_id;
+    if (gambar !== undefined ) user.gambar = gambar;
+    user.jabatan = jabatan;
+    user.role = role;
+    user.departemen = departemen;
+    user.manager_id = manager_id;
 
     await user.save();
 
@@ -168,6 +309,7 @@ export const updateProfileById = async (
                 nama: user.nama,
                 email: user.email,
                 alamat: user.alamat,
+                tanggal_lahir: user.tanggal_lahir,
                 nomor_telepon: user.nomor_telepon,
                 gambar: user.gambar,
                 jabatan: user.jabatan,

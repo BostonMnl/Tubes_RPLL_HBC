@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/user';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
 import { sendPasswordResetEmail } from '../utils/email';
+import { isStrongPassword } from '../utils/helper.js';
 
 type AuthenticatedRequest = Request & {
 	auth?: {
@@ -46,6 +48,51 @@ export const forgotPassword = async (
 	return {
 		code: 200,
 		message: 'Password reset email has been sent',
+	};
+};
+
+export const resetPasswordWithToken = async (
+	req: Request,
+	_res: Response
+): Promise<ApiResponse> => {
+	const { token, newPassword } = req.body as { token?: string; newPassword?: string };
+
+	if (!token || !newPassword) {
+		throw { code: 400, message: 'token and newPassword are required' };
+	}
+
+	if (!isStrongPassword(newPassword)) {
+		throw {
+			code: 400,
+			message:
+				'Password must be minimum 12 characters and include at least 1 uppercase, 1 number, and 1 symbol',
+		};
+	}
+
+	const resetSecret = process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET || 'your-secret-key';
+
+	let decoded: jwt.JwtPayload | string;
+	try {
+		decoded = jwt.verify(token, resetSecret);
+	} catch (_error) {
+		throw { code: 401, message: 'Invalid or expired reset token' };
+	}
+
+	if (typeof decoded === 'string' || decoded.purpose !== 'password_reset' || typeof decoded.email !== 'string') {
+		throw { code: 401, message: 'Invalid reset token payload' };
+	}
+
+	const user = await User.findOne({ where: { email: decoded.email } });
+	if (!user || user.deletedAt) {
+		throw { code: 404, message: 'User not found' };
+	}
+
+	user.password = await bcrypt.hash(newPassword, 10);
+	await user.save();
+
+	return {
+		code: 200,
+		message: 'Password has been reset successfully',
 	};
 };
 

@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { MailtrapClient } from 'mailtrap';
 
 type PasswordResetEmailPayload = {
   to: string;
@@ -6,38 +6,14 @@ type PasswordResetEmailPayload = {
   resetToken: string;
 };
 
-let transporter: nodemailer.Transporter | null = null;
+let client: MailtrapClient | null = null;
 
-const createTransporter = (): nodemailer.Transporter => {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  if (!host || !user || !pass) {
-    return nodemailer.createTransport({
-      jsonTransport: true,
-    });
+const getMailtrapClient = (token: string): MailtrapClient => {
+  if (!client) {
+    client = new MailtrapClient({ token });
   }
 
-  const port = Number(process.env.SMTP_PORT || 587);
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: {
-      user,
-      pass,
-    },
-  });
-};
-
-const getTransporter = (): nodemailer.Transporter => {
-  if (!transporter) {
-    transporter = createTransporter();
-  }
-
-  return transporter;
+  return client;
 };
 
 export const sendPasswordResetEmail = async ({
@@ -45,15 +21,25 @@ export const sendPasswordResetEmail = async ({
   nama,
   resetToken,
 }: PasswordResetEmailPayload): Promise<void> => {
+  const mailtrapToken = process.env.MAILTRAP_TOKEN;
+
+  if (!mailtrapToken) {
+    throw new Error('MAILTRAP_TOKEN is required to send email via Mailtrap API');
+  }
+
   const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:3000';
   const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}`;
-  const from = process.env.SMTP_FROM || 'no-reply@hbc.local';
+  const sender = {
+    email: process.env.MAILTRAP_SENDER_EMAIL || 'hello@demomailtrap.co',
+    name: process.env.MAILTRAP_SENDER_NAME || 'HBC App',
+  };
 
-  await getTransporter().sendMail({
-    from,
-    to,
+  await getMailtrapClient(mailtrapToken).send({
+    from: sender,
+    to: [{ email: to }],
     subject: 'Password reset request',
     text: `Halo ${nama},\n\nKami menerima permintaan reset password untuk akun Anda. Silakan buka tautan berikut:\n${resetUrl}\n\nJika ini bukan Anda, abaikan email ini.`,
     html: `<p>Halo ${nama},</p><p>Kami menerima permintaan reset password untuk akun Anda.</p><p>Silakan buka tautan berikut:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Jika ini bukan Anda, abaikan email ini.</p>`,
-  });
+    category: 'Password Reset',
+  }).then(console.log, console.error);
 };

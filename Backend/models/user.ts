@@ -1,5 +1,4 @@
 import { Table, Column, Model, DataType, HasMany, BeforeCreate, BelongsTo, ForeignKey } from 'sequelize-typescript';
-import { Col } from 'sequelize/types/utils';
 import { v4 } from 'uuid';
 import bcrypt from 'bcrypt';
 
@@ -47,13 +46,19 @@ export class User extends Model {
     declare nomor_telepon : string;
 
     @Column({
+        type : DataType.DATE,
+        allowNull : true
+    })
+    declare tanggal_lahir : Date;
+
+    @Column({
         type : DataType.STRING,
         allowNull : false
     })
     declare password : string;
 
     @Column({
-        type : DataType.STRING,
+        type : DataType.ENUM('manager', 'staff', 'supervisor'),
         allowNull : false
     })
     declare jabatan : string;
@@ -71,7 +76,7 @@ export class User extends Model {
     declare role : string;
 
     @Column({
-        type : DataType.STRING,
+        type : DataType.ENUM('SALES', 'IT', 'FINANCE', 'PURCHASE'),
         allowNull : false
     })
     declare departemen : string;
