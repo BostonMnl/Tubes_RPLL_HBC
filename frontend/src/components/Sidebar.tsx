@@ -1,4 +1,5 @@
 import { Nav } from 'react-bootstrap';
+import { BiReceipt } from 'react-icons/bi';
 import {
   BsSpeedometer2,
   BsPeople,
@@ -6,20 +7,18 @@ import {
   BsBarChart,
   BsCashStack
 } from 'react-icons/bs';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-type SidebarProps = {
-  active: string;
-  setActive: (value: string) => void;
-};
-
-export default function Sidebar({ active, setActive }: SidebarProps) {
+export default function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const menu = [
-    { key: 'dashboard', label: 'Dashboard', icon: <BsSpeedometer2 /> },
-    { key: 'user', label: 'User', icon: <BsPeople /> },
-    { key: 'calendar', label: 'Calendar View', icon: <BsCalendar /> },
-    { key: 'hr', label: 'HR Stats', icon: <BsBarChart /> },
-    { key: 'wage', label: 'Setting Wage', icon: <BsCashStack /> },
+    { path: '/', label: 'Dashboard', icon: <BsSpeedometer2 /> },
+    { path: '/user', label: 'User', icon: <BsPeople /> },
+    { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
+    { path: '/Reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
+    { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },
   ];
 
   return (
@@ -29,10 +28,12 @@ export default function Sidebar({ active, setActive }: SidebarProps) {
       <Nav className="flex-column mt-4">
         {menu.map(item => (
           <Nav.Link
-            key={item.key}
-            onClick={() => setActive(item.key)}
+            key={item.path}
+            onClick={() => navigate(item.path)}
             className={`d-flex align-items-center gap-2 mb-2 rounded ${
-              active === item.key ? 'bg-primary text-white' : ''
+              location.pathname === item.path
+                ? 'bg-primary text-white'
+                : ''
             }`}
           >
             <span style={{ fontSize: '18px' }}>{item.icon}</span>

@@ -14,3 +14,8 @@
 .nav-link:hover {
   background-color: #ffe6ee;
 }
+
+.bg-pink-custom {
+  background-color: #ff69b4 !important;
+  color: white !important;
+}
