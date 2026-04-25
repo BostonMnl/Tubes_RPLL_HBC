@@ -27,7 +27,7 @@ export const sendPasswordResetEmail = async ({
     throw new Error('MAILTRAP_TOKEN is required to send email via Mailtrap API');
   }
 
-  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:3000';
+  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
   const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}`;
   const sender = {
     email: process.env.MAILTRAP_SENDER_EMAIL || 'hello@demomailtrap.co',
@@ -41,5 +41,5 @@ export const sendPasswordResetEmail = async ({
     text: `Halo ${nama},\n\nKami menerima permintaan reset password untuk akun Anda. Silakan buka tautan berikut:\n${resetUrl}\n\nJika ini bukan Anda, abaikan email ini.`,
     html: `<p>Halo ${nama},</p><p>Kami menerima permintaan reset password untuk akun Anda.</p><p>Silakan buka tautan berikut:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Jika ini bukan Anda, abaikan email ini.</p>`,
     category: 'Password Reset',
-  }).then(console.log, console.error);
+  });
 };
