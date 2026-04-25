@@ -1,4 +1,4 @@
-import 'package:mobile/model/user.dart';
+import 'package:mobile/data/model/user.dart';
 
 class Log_aktivitas{
   final String log_id;

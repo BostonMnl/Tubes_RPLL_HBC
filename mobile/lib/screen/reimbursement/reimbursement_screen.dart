@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/model/reimbursement.dart';
+import 'package:mobile/data/model/reimbursement.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 

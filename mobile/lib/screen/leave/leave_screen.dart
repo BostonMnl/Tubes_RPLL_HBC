@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../../model/cuti.dart';
+import '../../data/model/cuti.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LeaveScreen extends StatefulWidget {
