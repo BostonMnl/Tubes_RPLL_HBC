@@ -15,7 +15,7 @@ class Absensi {
     required this.qrCode,
   });
 
-  // Convert dari JSON ke Object
+
   factory Absensi.fromJson(Map<String, dynamic> json) {
     return Absensi(
       absensiId: json['absensi_id'] as String,
