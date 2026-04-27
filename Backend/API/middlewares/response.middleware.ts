@@ -49,7 +49,7 @@ export const apiErrorHandler: ErrorRequestHandler = (error, _req, res, next): vo
       : 'Not found';
   const details = (error as { details?: unknown })?.details;
 
-  console.error(error);
+  console.error(error.code, error.message);
 
   const payload: { code: number; message: string; details?: unknown } = {
     code: statusCode,

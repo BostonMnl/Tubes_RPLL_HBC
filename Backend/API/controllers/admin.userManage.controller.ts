@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/user';
-import { ResetPasswordRequest } from '../../models/resetPasswordRequest';
 import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
 import { UUIDV4 } from 'sequelize';
@@ -70,6 +69,8 @@ export const createUser = async (
         password?: string;
     };
 
+    console.log('1')
+
     if (!nama || !alamat || !email || !tanggal_lahir || !jabatan || !role || !departemen || !password) {
         throw {
             code: 400,
@@ -77,10 +78,14 @@ export const createUser = async (
         };
     }
 
+    console.log('2')
+
     const parsedTanggalLahir = new Date(tanggal_lahir);
     if (Number.isNaN(parsedTanggalLahir.getTime())) {
         throw { code: 400, message: 'tanggal_lahir must be a valid date' };
     }
+
+    console.log('9')
 
     if (!isStrongPassword(password)) {
         throw {
@@ -90,12 +95,16 @@ export const createUser = async (
         };
     }
 
+    console.log('8')
+
     if (!JABATAN_VALUES.includes(jabatan as (typeof JABATAN_VALUES)[number])) {
         throw {
             code: 400,
             message: `jabatan must be one of: ${JABATAN_VALUES.join(', ')}`,
         };
     }
+
+    console.log('7')
 
     if (!ROLE_VALUES.includes(role as (typeof ROLE_VALUES)[number])) {
         throw {
@@ -104,6 +113,8 @@ export const createUser = async (
         };
     }
 
+    console.log('6')
+
     if (!DEPARTEMEN_VALUES.includes(departemen as (typeof DEPARTEMEN_VALUES)[number])) {
         throw {
             code: 400,
@@ -111,24 +122,31 @@ export const createUser = async (
         };
     }
 
+    console.log('5')
+
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
         throw { code: 409, message: 'Email already registered' };
     }
 
+    console.log('3')
+
     const createdUser = await User.create({
-        user_id: UUIDV4(),
-        nama,
-        alamat,
-        email,
+        nama : nama,
+        alamat : alamat,
+        email : email,
         tanggal_lahir: parsedTanggalLahir,
         nomor_telepon: nomor_telepon ?? null,
-        jabatan,
-        role,
-        departemen,
+        jabatan : jabatan,
+        role : role,
+        departemen : departemen,
         gambar: gambar ?? null,
-        password,
+        password : password,
     });
+
+    console.log('4')
+
+    console.log('Created user:', createdUser.nama, createdUser.email);
 
     return {
         code: 201,

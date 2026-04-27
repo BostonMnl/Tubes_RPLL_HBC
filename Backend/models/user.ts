@@ -1,5 +1,4 @@
 import { Table, Column, Model, DataType, HasMany, BeforeCreate, BelongsTo, ForeignKey } from 'sequelize-typescript';
-import { v4 } from 'uuid';
 import bcrypt from 'bcrypt';
 
 
@@ -12,7 +11,7 @@ export class User extends Model {
     @Column({
         type : DataType.UUID,
         primaryKey : true,
-        defaultValue : v4(),
+        defaultValue : DataType.UUIDV4,
         allowNull : false
     })
     declare user_id : string;
