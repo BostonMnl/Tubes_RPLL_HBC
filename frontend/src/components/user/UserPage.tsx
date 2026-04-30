@@ -1,44 +1,51 @@
-import { useState } from 'react';
-import { Card, Table, Button, Modal, Form } from 'react-bootstrap';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Button, Modal, Form, Spinner, Alert } from 'react-bootstrap';
 import UserDetail from './UserDetail';
 import type { User } from '../../model/User';
+import { userServices } from '../../services/apiServices';
 
-
+const initialFormState: Partial<User> = {
+  nama: '',
+  alamat: '',
+  email: '',
+  tanggal_lahir: '',
+  nomor_telepon: '',
+  password: '',
+  jabatan: 'staff',
+  gambar: '',
+  role: 'staff',
+  departemen: 'IT',
+};
 
 export default function UserPage() {
   const [selected, setSelected] = useState<User | null>(null);
-  const [show, setShow] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [preview, setPreview] = useState<string>('');
+  const [pageLoading, setPageLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [formError, setFormError] = useState<string>('');
 
-  const [users, setUsers] = useState<User[]>([
-    {
-      user_id: 'U001',
-      nama: 'Calvin',
-      alamat: 'Bandung',
-      email: 'calvin@mail.com',
-      nomor_telepon: '08123456789',
-      password: '123456',
-      jabatan: 'STAFF',
-      manager_id: 'M001',
-      gambar: 'https://i.ytimg.com/vi/6PAAMgaBCFQ/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBy38ijVftoy0v_37zbq02xEosXdg',
-      role: 'KARYAWAN',
-      departemen: 'IT'
+  const [users, setUsers] = useState<User[]>([]);
+
+  const [newUser, setNewUser] = useState<Partial<User>>(initialFormState);
+
+  const fetchUsers = useCallback(async () => {
+    setPageLoading(true);
+    setError('');
+    try {
+      const response = await userServices.getAllUsers();
+      setUsers(response.data || response || []);
+    } catch (err: any) {
+      setError(err.message || 'Gagal memuat data user');
+    } finally {
+      setPageLoading(false);
     }
-  ]);
+  }, []);
 
-  const [newUser, setNewUser] = useState<User>({
-    user_id: '',
-    nama: '',
-    alamat: '',
-    email: '',
-    nomor_telepon: '',
-    password: '',
-    jabatan: 'STAFF',
-    manager_id: '',
-    gambar: '',
-    role: 'KARYAWAN',
-    departemen: 'SALES'
-  });
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -51,33 +58,42 @@ export default function UserPage() {
     }));
   };
 
-  const handleAdd = () => {
-    setUsers([...users, newUser]);
-    setShow(false);
+  const handleAdd = async () => {
+    if (!newUser.nama || !newUser.email || !newUser.password) {
+      setFormError('Nama, Email, dan Password wajib diisi!');
+      return;
+    }
 
-    setNewUser({
-      user_id: '',
-      nama: '',
-      alamat: '',
-      email: '',
-      nomor_telepon: '',
-      password: '',
-      jabatan: 'STAFF',
-      manager_id: '',
-      gambar: '',
-      role: 'KARYAWAN',
-      departemen: 'SALES'
-    });
+    setFormLoading(true);
+    setFormError('');
+
+    try {
+      await userServices.createUser(newUser);
+      setShowAddModal(false);
+      setNewUser(initialFormState);
+      setPreview('');
+      await fetchUsers(); // Muat ulang data user untuk menampilkan yang baru
+    } catch (err: any) {
+      setFormError(err.message || 'Gagal menambah user');
+    } finally {
+      setFormLoading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setUsers(users.filter(u => u.user_id !== id));
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus user ini?')) {
+      try {
+        await userServices.deleteUser(id);
+        setUsers(currentUsers => currentUsers.filter(u => u.user_id !== id));
+      } catch (err: any) {
+        alert(`Gagal menghapus user: ${err.message}`);
+      }
+    }
   };
 
   if (selected) {
     return <UserDetail user={selected} goBack={() => setSelected(null)} />;
   }
-
 
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -97,7 +113,7 @@ export default function UserPage() {
       <div className="d-flex justify-content-between align-items-center">
         <h4>User List</h4>
 
-        <Button variant="primary" onClick={() => setShow(true)}>
+        <Button variant="primary" onClick={() => setShowAddModal(true)}>
           + Add User
         </Button>
       </div>
@@ -114,39 +130,57 @@ export default function UserPage() {
           </tr>
         </thead>
 
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.user_id}>
-              <td>{u.user_id}</td>
-              <td>{u.nama}</td>
-              <td>{u.email}</td>
-              <td>{u.jabatan}</td>
-              <td>{u.departemen}</td>
-              <td className="d-flex gap-2">
-                <Button size="sm" onClick={() => setSelected(u)}>
-                  Detail
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => handleDelete(u.user_id)}
-                >
-                  Delete
-                </Button>
+        {pageLoading ? (
+          <tbody>
+            <tr>
+              <td colSpan={6} className="text-center py-4">
+                <Spinner animation="border" size="sm" /> Loading users...
               </td>
             </tr>
-          ))}
-        </tbody>
+          </tbody>
+        ) : error ? (
+          <tbody>
+            <tr>
+              <td colSpan={6} className="text-center text-danger py-4">
+                <Alert variant="danger">{error}</Alert>
+              </td>
+            </tr>
+          </tbody>
+        ) : (
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.user_id}>
+                <td>{u.user_id}</td>
+                <td>{u.nama}</td>
+                <td>{u.email}</td>
+                <td>{u.jabatan}</td>
+                <td>{u.departemen}</td>
+                <td className="d-flex gap-2">
+                  <Button size="sm" onClick={() => setSelected(u)}>
+                    Detail
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => handleDelete(u.user_id)}
+                  >
+                    Delete
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        )}
       </Table>
 
-
-      <Modal show={show} onHide={() => setShow(false)}>
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Add User</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
+          {formError && <Alert variant="danger">{formError}</Alert>}
           <Form>
 
             <Form.Control
@@ -182,9 +216,9 @@ export default function UserPage() {
               name="jabatan"
               onChange={handleChange}
             >
-              <option value="MANAGER">Manager</option>
-              <option value="STAFF">Staff</option>
-              <option value="SUPERVISIOR">Supervisior</option>
+              <option value="manager">Manager</option>
+              <option value="staff">Staff</option>
+              <option value="supervisor">Supervisor</option>
             </Form.Select>
 
             <Form.Label>Role : </Form.Label>
@@ -193,8 +227,8 @@ export default function UserPage() {
               name="role"
               onChange={handleChange}
             >
-              <option value="ADMIN">Admin</option>
-              <option value="KARYAWAN">Karyawan</option>
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
             </Form.Select>
 
             <Form.Label>Departemen : </Form.Label>
@@ -214,6 +248,21 @@ export default function UserPage() {
               <Form.Control type="file" onChange={handleImage} />
             </Form.Group>
 
+            <Form.Control
+              className="mb-2"
+              type="date"
+              name="tanggal_lahir"
+              onChange={handleChange}
+            />
+
+            <Form.Control
+              className="mb-2"
+              type="password"
+              name="password"
+              placeholder="Password"
+              onChange={handleChange}
+            />
+
             {preview && (
               <div className="text-center mt-2">
                 <img
@@ -232,11 +281,11 @@ export default function UserPage() {
         </Modal.Body>
 
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShow(false)}>
+          <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={formLoading}>
             Cancel
           </Button>
-          <Button variant="success" onClick={handleAdd}>
-            Save
+          <Button variant="success" onClick={handleAdd} disabled={formLoading}>
+            {formLoading ? 'Saving...' : 'Save'}
           </Button>
         </Modal.Footer>
       </Modal>
