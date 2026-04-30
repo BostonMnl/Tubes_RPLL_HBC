@@ -4,8 +4,8 @@ import {
   BsSpeedometer2,
   BsPeople,
   BsCalendar,
-  BsBarChart,
-  BsCashStack
+  BsCashStack,
+  BsTree,
 } from 'react-icons/bs';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -16,6 +16,7 @@ export default function Sidebar() {
   const menu = [
     { path: '/', label: 'Dashboard', icon: <BsSpeedometer2 /> },
     { path: '/user', label: 'User', icon: <BsPeople /> },
+    { path: '/tree', label: 'Management Tree', icon: <BsTree /> },
     { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
     { path: '/Reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },

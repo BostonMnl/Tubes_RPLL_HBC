@@ -1,6 +1,6 @@
-import { Navbar, Form, FormControl, Badge, Dropdown } from 'react-bootstrap';
+import { Navbar, Form, FormControl,  Dropdown } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 
 export default function Topbar() {

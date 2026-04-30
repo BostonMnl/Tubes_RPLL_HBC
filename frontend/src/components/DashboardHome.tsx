@@ -1,10 +1,9 @@
 import { Row, Col, Card } from 'react-bootstrap';
-import AttendanceList from './AttendanceList';
+import AttendanceList from './Attendance/AttendanceList';
 
 
 export default function DashboardHome() {
 
-  // dummy data (nanti dari backend)
   const totalUsers = 25;
   const hadirHariIni = 18;
   const reimburstRequest = 5;
