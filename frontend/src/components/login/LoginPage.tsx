@@ -1,22 +1,28 @@
 import { useState, useEffect } from 'react';
 import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
 
-  // Jika sudah login, redirect ke dashboard
+  const navigate = useNavigate();
+  const { login, isAuthenticated, user } = useAuth();
+
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated || !user) return;
+
+    if (user.role === 'admin') {
       navigate('/', { replace: true });
+    } else if (user.role === 'manager') {
+      navigate('/dashboard-manager', { replace: true });
+    } else {
+      setError('Akun tidak dikenali');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +37,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      navigate('/');
+      // jangan navigate di sini (biar useEffect yang handle)
     } catch (err: any) {
       setError(err.message || 'Login gagal, silahkan cek email dan password');
     } finally {
@@ -39,6 +45,7 @@ export default function LoginPage() {
     }
   };
 
+  console.log("USER LOGIN:", user);
   return (
     <Container fluid className="vh-100 d-flex justify-content-center align-items-center bg-light">
       <Card className="shadow-lg border-0" style={{ width: '100%', maxWidth: '400px' }}>

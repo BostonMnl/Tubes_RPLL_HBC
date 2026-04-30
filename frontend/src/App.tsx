@@ -1,8 +1,8 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Routes, Route, Outlet } from 'react-router-dom';
 
-import Sidebar from './components/Sidebar';
-import Topbar from './components/TopBar';
+import Sidebar from './components/navigation/Sidebar';
+import Topbar from './components/navigation/TopBar';
 
 import DashboardHome from './components/DashboardHome';
 import UserPage from './components/user/UserPage';
@@ -11,8 +11,11 @@ import WageSettings from './components/wage/WageSettings';
 import AdminProfile from './components/AdminProfile';
 import ReimbursePage from './components/Reimburse/ReimbursePage';
 
-import LoginPage from './components/LoginPage';
+import LoginPage from './components/login/LoginPage';
 import ProtectedRoute from './routes/ProtectedRoute';
+
+import ManagementTree from './components/ManagementTree';
+import ManagerDashboard from './components/ManagerDashboard';
 
 function DashboardLayout() {
   return (
@@ -47,6 +50,8 @@ export default function App() {
         <Route path="reimburse" element={<ReimbursePage />} />
         <Route path="wage" element={<WageSettings />} />
         <Route path="profile" element={<AdminProfile />} />
+        <Route path="tree" element={<ManagementTree />} />
+        <Route path="dashboard-manage" element={<ManagerDashboard />} />
       </Route>
     </Routes>
   );
