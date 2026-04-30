@@ -15,17 +15,18 @@ class _SplashScreenState extends State<SplashScreen> {
     checkLogin();
   }
 
-  Future<void> checkLogin() async {
-    final token = await AuthStorage.getToken();
+Future<void> checkLogin() async {
+  final isValid = await AuthStorage.isTokenValid();
 
-    await Future.delayed(const Duration(seconds: 1));
+  await Future.delayed(const Duration(seconds: 1));
 
-    if (token != null) {
-      Navigator.pushReplacementNamed(context, "/home");
-    } else {
-      Navigator.pushReplacementNamed(context, "/login");
-    }
+  if (isValid) {
+    Navigator.pushReplacementNamed(context, "/home");
+  } else {
+    await AuthStorage.clearToken();
+    Navigator.pushReplacementNamed(context, "/login");
   }
+}
 
   @override
   Widget build(BuildContext context) {

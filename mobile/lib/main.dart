@@ -38,17 +38,19 @@ class _MyAppState extends State<MyApp> {
   }
 
 Future<void> _checkLogin() async {
-  final token = await AuthStorage.getToken();
+  final isValid = await AuthStorage.isTokenValid();
 
-  print("TOKEN DI START: $token");
+  print("TOKEN VALID: $isValid");
 
   if (!mounted) return;
 
-  if (token != null && token.isNotEmpty) {
+  if (isValid) {
     setState(() {
       _startScreen = const HomeScreen();
     });
   } else {
+    await AuthStorage.clearToken();
+
     setState(() {
       _startScreen = const LoginScreen();
     });
