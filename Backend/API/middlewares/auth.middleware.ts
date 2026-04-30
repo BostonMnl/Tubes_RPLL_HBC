@@ -3,10 +3,10 @@ import jwt from 'jsonwebtoken';
 import { extractTokenFromRequest, isTokenRevoked } from '../utils/token-revocation';
 
 const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-type JwtAuthPayload = { id: string; role: string };
+type JwtAuthPayload = { id: string; role: string; jabatan: string };
 type RequestWithAuth = Request & { auth?: JwtAuthPayload };
 
-export const authMiddleware = (allowedRoles: string[] = []) => {
+export const authMiddleware = (allowedRoles: string[] = [], allowedJabatan: string[] = []) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const token = extractTokenFromRequest(req);
 
@@ -25,6 +25,14 @@ export const authMiddleware = (allowedRoles: string[] = []) => {
 
       if (allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
         res.status(403).json({ message: 'Forbidden: insufficient role' });
+        return;
+      }
+
+      if (allowedJabatan.length > 0 && !allowedJabatan.includes(decoded.jabatan)) {
+        if (allowedRoles.length > 0 && allowedRoles.includes("admin")) {
+          return next();
+        }
+        res.status(403).json({ message: 'Forbidden: insufficient wewenang' });
         return;
       }
 

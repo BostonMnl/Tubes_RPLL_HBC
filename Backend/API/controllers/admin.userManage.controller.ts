@@ -69,8 +69,6 @@ export const createUser = async (
         password?: string;
     };
 
-    console.log('1')
-
     if (!nama || !alamat || !email || !tanggal_lahir || !jabatan || !role || !departemen || !password) {
         throw {
             code: 400,
@@ -78,14 +76,11 @@ export const createUser = async (
         };
     }
 
-    console.log('2')
-
     const parsedTanggalLahir = new Date(tanggal_lahir);
     if (Number.isNaN(parsedTanggalLahir.getTime())) {
         throw { code: 400, message: 'tanggal_lahir must be a valid date' };
     }
 
-    console.log('9')
 
     if (!isStrongPassword(password)) {
         throw {
@@ -95,7 +90,6 @@ export const createUser = async (
         };
     }
 
-    console.log('8')
 
     if (!JABATAN_VALUES.includes(jabatan as (typeof JABATAN_VALUES)[number])) {
         throw {
@@ -104,7 +98,6 @@ export const createUser = async (
         };
     }
 
-    console.log('7')
 
     if (!ROLE_VALUES.includes(role as (typeof ROLE_VALUES)[number])) {
         throw {
@@ -113,7 +106,6 @@ export const createUser = async (
         };
     }
 
-    console.log('6')
 
     if (!DEPARTEMEN_VALUES.includes(departemen as (typeof DEPARTEMEN_VALUES)[number])) {
         throw {
@@ -122,14 +114,12 @@ export const createUser = async (
         };
     }
 
-    console.log('5')
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
         throw { code: 409, message: 'Email already registered' };
     }
 
-    console.log('3')
 
     const createdUser = await User.create({
         nama : nama,
@@ -143,10 +133,6 @@ export const createUser = async (
         gambar: gambar ?? null,
         password : password,
     });
-
-    console.log('4')
-
-    console.log('Created user:', createdUser.nama, createdUser.email);
 
     return {
         code: 201,
@@ -198,6 +184,26 @@ export const resetPassword = async (
     return {
         code: 200,
         message: 'Password has been reset successfully',
+    };
+};
+
+export const getUsersProfile = async (
+    req: AuthenticatedRequest,
+    _res: Response
+): Promise<ApiResponse<{ user: User[] }>> => {
+    if (!req.auth?.id) {
+        throw { code: 401, message: 'Unauthorized' };
+    }
+
+    const user = await User.findAll({
+        attributes: ['user_id', 'nama', 'email','jabatan', 'role'],
+    });
+
+
+    return {
+        code: 200,
+        message: 'All users profile fetched successfully',
+        data: { user },
     };
 };
 

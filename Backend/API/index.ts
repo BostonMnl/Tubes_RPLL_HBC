@@ -1,21 +1,24 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import sequelize from '../config/database';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import adminUserManageRoutes from './routes/admin.userManage.routes';
+import promotionRoutes from './routes/promotion.routes';
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 // app.use(sessionMiddleware);
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
 app.use('/api/admin', adminUserManageRoutes);
+app.use('/api/promotion', promotionRoutes);
 
 
 // Database connection
