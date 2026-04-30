@@ -1,28 +1,56 @@
-import { useState } from 'react';
-import { Card, Row, Col, Form, Button, Badge } from 'react-bootstrap';
-
-type Admin = {
-  name: string;
-  email: string;
-  role: string;
-  phone: string;
-  address: string;
-  image: string;
-};
+import { useState, useEffect } from 'react';
+import { Card, Row, Col, Form, Button, Badge, Spinner, Alert } from 'react-bootstrap';
+import { useAuth } from '../context/AuthContext';
+import { userServices } from '../services/apiServices';
+import type { User } from '../model/User';
+import { decodeToken, getToken } from '../utils/tokenManager';
 
 export default function AdminProfile() {
+  const { user, isLoading: authLoading } = useAuth();
   const [isEdit, setIsEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const [form, setForm] = useState<Admin>({
-    name: 'Sarah Johnson',
-    email: 'sarah@mail.com',
-    role: 'Admin',
-    phone: '08123456789',
-    address: 'Jakarta, Indonesia',
-    image: ''
-  });
-
+  const [form, setForm] = useState<Partial<User>>({});
   const [preview, setPreview] = useState<string>('');
+
+useEffect(() => {
+  if (authLoading) return; 
+
+  const fetchProfile = async () => {
+    let userId = user?.user_id || (user as any)?.id;
+
+    if (!userId) {
+      const token = getToken();
+      if (token) {
+        const decoded = decodeToken(token);
+        userId = decoded?.id;
+      }
+    }
+
+    if (!userId) {
+      setError('ID User tidak ditemukan. Silakan login ulang.');
+      setLoading(false); 
+      return;
+    }
+
+    try {
+      const res = await userServices.getUserById(userId);
+      const userData = res.data || res;
+
+      setForm(userData.user || userData);
+      setPreview(userData.user.gambar || '');
+    } catch (err: any) {
+      setError(err.message || 'Gagal memuat profil');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchProfile();
+}, [user, authLoading]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -32,24 +60,46 @@ export default function AdminProfile() {
     if (e.target.files && e.target.files[0]) {
       const url = URL.createObjectURL(e.target.files[0]);
       setPreview(url);
-      setForm({ ...form, image: url });
+      setForm({ ...form, gambar: url });
     }
   };
 
-  const handleSave = () => {
-    console.log('SAVE ADMIN:', form);
-    setIsEdit(false);
+  const handleSave = async () => {
+    const userId = user?.user_id || (user as any)?.id;
+    if (!userId) return;
+
+    setSaving(true);
+    setError('');
+    try {
+      await userServices.updateUser(userId, form);
+      setIsEdit(false);
+      alert('Profil berhasil diperbarui!');
+    } catch (err: any) {
+      setError(err.message || 'Gagal menyimpan profil');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="p-4 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p>Memuat profil...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="p-4">
       <Card className="shadow border-0 rounded-4 p-4">
+        {error && <Alert variant="danger">{error}</Alert>}
         <Row>
-          {/* 🔥 LEFT SIDE */}
           <Col md={4} className="text-center border-end">
             <div className="position-relative mb-3">
               <img
-                src={preview || form.image || 'https://via.placeholder.com/150'}
+                src={preview || form.gambar || 'https://via.placeholder.com/150'}
                 alt="profile"
                 style={{
                   width: 140,
@@ -70,12 +120,12 @@ export default function AdminProfile() {
               )}
             </div>
 
-            <h5 className="fw-bold">{form.name}</h5>
+            <h5 className="fw-bold">{form.nama}</h5>
             <Badge bg="primary" className="mb-2">{form.role}</Badge>
 
             <div className="text-muted small">
               <p className="mb-1">{form.email}</p>
-              <p className="mb-1">{form.phone}</p>
+              <p className="mb-1">{form.nomor_telepon}</p>
             </div>
 
             <Button
@@ -95,12 +145,12 @@ export default function AdminProfile() {
             {!isEdit ? (
               <Row>
                 <Col md={6}>
-                  <p><b>Full Name</b><br />{form.name}</p>
+                  <p><b>Full Name</b><br />{form.nama}</p>
                   <p><b>Email</b><br />{form.email}</p>
                 </Col>
                 <Col md={6}>
-                  <p><b>Phone</b><br />{form.phone}</p>
-                  <p><b>Address</b><br />{form.address}</p>
+                  <p><b>Phone</b><br />{form.nomor_telepon}</p>
+                  <p><b>Address</b><br />{form.alamat}</p>
                 </Col>
               </Row>
             ) : (
@@ -110,8 +160,8 @@ export default function AdminProfile() {
                     <Form.Group className="mb-3">
                       <Form.Label>Name</Form.Label>
                       <Form.Control
-                        name="name"
-                        value={form.name}
+                        name="nama"
+                        value={form.nama || ''}
                         onChange={handleChange}
                       />
                     </Form.Group>
@@ -120,7 +170,7 @@ export default function AdminProfile() {
                       <Form.Label>Email</Form.Label>
                       <Form.Control
                         name="email"
-                        value={form.email}
+                        value={form.email || ''}
                         onChange={handleChange}
                       />
                     </Form.Group>
@@ -130,8 +180,8 @@ export default function AdminProfile() {
                     <Form.Group className="mb-3">
                       <Form.Label>Phone</Form.Label>
                       <Form.Control
-                        name="phone"
-                        value={form.phone}
+                        name="nomor_telepon"
+                        value={form.nomor_telepon || ''}
                         onChange={handleChange}
                       />
                     </Form.Group>
@@ -139,16 +189,16 @@ export default function AdminProfile() {
                     <Form.Group className="mb-3">
                       <Form.Label>Address</Form.Label>
                       <Form.Control
-                        name="address"
-                        value={form.address}
+                        name="alamat"
+                        value={form.alamat || ''}
                         onChange={handleChange}
                       />
                     </Form.Group>
                   </Col>
                 </Row>
 
-                <Button variant="success" onClick={handleSave}>
-                  Save Changes
+                <Button variant="success" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </Form>
             )}

@@ -1,9 +1,25 @@
 import { Navbar, Form, FormControl, Badge, Dropdown } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 
 export default function Topbar() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  // Mengambil inisial nama (contoh: "Sarah Johnson" -> "SJ")
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length > 1) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return parts[0][0].toUpperCase();
+  };
+
   return (
     <Navbar bg="light" className="px-4 shadow-sm">
       <Form className="d-flex w-50">
@@ -20,16 +36,16 @@ export default function Topbar() {
               className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
               style={{ width: 40, height: 40 }}
             >
-              SJ
+            {getInitials(user?.nama)}
             </div>
-            <span>Sarah Johnson</span>
+          <span>{user?.nama || 'User'}</span>
           </Dropdown.Toggle>
 
           <Dropdown.Menu>
             <Dropdown.Item onClick={() => navigate('/profile')}>Profile</Dropdown.Item>
             <Dropdown.Item href="/settings">Settings</Dropdown.Item>
             <Dropdown.Divider />
-            <Dropdown.Item href="/logout">Logout</Dropdown.Item>
+          <Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
       </div>
