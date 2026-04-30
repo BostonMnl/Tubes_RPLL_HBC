@@ -43,36 +43,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // @override
-  // void initState() {
-  //   super.initState();
-
-  //   //fetchProfile()
-
-  //   Future.delayed(const Duration(seconds: 1), () {
-  //     setState(() {
-  //       user = ApiServices().getDummyUser();
-  //       isLoading = false;
-  //     });
-  //   });
-  // }
-
-  // Future<void> fetchProfile() async {
-  //   try {
-  //     final res = await ApiServices.getMyProfile(token);
-
-  //     setState(() {
-  //       user = res;
-  //       isLoading = false;
-  //     });
-  //   } catch (e) {
-  //     setState(() {
-  //       error = e.toString();
-  //       isLoading = false;
-  //     });
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,9 +115,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       arguments: user,
                     );
 
-                    // 🔥 refresh data setelah balik dari edit
-                    if (updated == true) {
-                      loadProfile();
+                    if (updated != null && updated is User) {
+                      setState(() {
+                        user = updated;
+                      });
                     }
                   },
                   icon: const Icon(Icons.edit, size: 18),
