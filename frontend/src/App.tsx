@@ -16,6 +16,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 
 import ManagementTree from './components/ManagementTree';
 import ManagerDashboard from './components/ManagerDashboard';
+import RoleRoute from './routes/RoleRoute';
 
 function DashboardLayout() {
   return (
@@ -36,11 +37,14 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
+      {/* ===== ADMIN ===== */}
       <Route
-        path="/"
+        path="/admin"
         element={
           <ProtectedRoute>
-            <DashboardLayout />
+            <RoleRoute allowRole={['admin']}>
+              <DashboardLayout />
+            </RoleRoute>
           </ProtectedRoute>
         }
       >
@@ -51,8 +55,26 @@ export default function App() {
         <Route path="wage" element={<WageSettings />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="tree" element={<ManagementTree />} />
-        <Route path="dashboard-manage" element={<ManagerDashboard />} />
+      </Route>
+
+      {/* ===== MANAGER ===== */}
+      <Route
+        path="/manager"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowJabatan={['manager', 'supervisor']}>
+              <DashboardLayout />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ManagerDashboard />} />
+        <Route path="calendar" element={<CalendarView />} />
+        <Route path="reimburse" element={<ReimbursePage />} />
+        <Route path="wage" element={<WageSettings />} />
+        <Route path="tree" element={<ManagementTree />} />
       </Route>
     </Routes>
   );
+
 }

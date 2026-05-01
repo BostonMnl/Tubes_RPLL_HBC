@@ -32,7 +32,7 @@ async function handleResponse(response: Response) {
 export const userServices = {
     // Get all users
     getAllUsers: async () => {
-        const response = await fetchWithToken(`${API_BASE_URL}/users`);
+        const response = await fetchWithToken(`${API_BASE_URL}/admin/users`);
         return handleResponse(response);
     },
 
@@ -52,9 +52,9 @@ export const userServices = {
     },
 
     // Update user
-    updateUser: async (userId: string, userData: Partial<User>) => {
-        const response = await fetchWithToken(`${API_BASE_URL}/users/${userId}`, {
-            method: 'PUT',
+    updateUser: async (userId: string, userData: Partial<User> | FormData) => {
+        const response = await fetchWithToken(`${API_BASE_URL}/admin/users/${userId}`, {
+            method: 'PATCH',
             body: JSON.stringify(userData),
         });
         return handleResponse(response);
@@ -287,7 +287,6 @@ export const userServices = {
 
 // ============ AUTHENTICATION SERVICES WITH JWT ============
 export const authServices = {
-    // Login - mendapatkan JWT token
     login: async (email: string, password: string) => {
         const response = await fetchWithToken(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
