@@ -1,23 +1,52 @@
-import { Container, Row, Col } from 'react-bootstrap';
-import Sidebar from './navigation/Sidebar';
-import Topbar from './navigation/TopBar';
-import { Outlet } from 'react-router-dom';
+import { Row, Col, Card } from 'react-bootstrap';
+import CalendarView from './leave/CalendarView';
+import ManagementTree from './ManagementTree';
 
 export default function ManagerDashboard() {
+  // dummy data (nanti ganti dari API)
+  const totalCuti = 12;
+  const pendingReimburse = 4;
+  const teamSize = 8;
+
   return (
-    <Container fluid className="p-0 vh-100 d-flex">
-      
-      <Sidebar />
+    <>
+      <h3 className="text-primary fw-bold mb-3">Manager Dashboard</h3>
 
-      <div className="flex-grow-1 d-flex flex-column">
-        
-        <Topbar />
+      {/* ===== STATS ===== */}
+      <Row className="g-3">
+        <Col md={4}>
+          <Card className="p-3 shadow-sm text-center">
+            <small className="text-muted">Jumlah Cuti Tim</small>
+            <h3 className="text-warning">{totalCuti}</h3>
+          </Card>
+        </Col>
 
-        <div className="flex-grow-1 overflow-auto p-3 bg-light">
-          <Outlet />
-        </div>
+        <Col md={4}>
+          <Card className="p-3 shadow-sm text-center">
+            <small className="text-muted">Pending Reimburse</small>
+            <h3 className="text-danger">{pendingReimburse}</h3>
+          </Card>
+        </Col>
 
-      </div>
-    </Container>
+        <Col md={4}>
+          <Card className="p-3 shadow-sm text-center">
+            <small className="text-muted">Jumlah Tim</small>
+            <h3 className="text-success">{teamSize}</h3>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* ===== CONTENT ===== */}
+      <Row className="mt-4 g-3">
+
+        {/* Calendar */}
+        <Col md={7}>
+          <Card className="p-3 shadow-sm">
+            <h5 className="mb-3">Kalender Cuti</h5>
+            <CalendarView />
+          </Card>
+        </Col>
+      </Row>
+    </>
   );
 }

@@ -1,16 +1,57 @@
-import { useState } from 'react';
-import { Card, Button, Row, Col, Table, Form, Badge } from 'react-bootstrap';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, Button, Row, Col, Table, Form, Badge, Alert, Spinner } from 'react-bootstrap';
 import type { User } from '../../model/User';
+import { userServices } from '../../services/apiServices';
 
 type Props = {
-  user: User;
+  userId: string;
   goBack: () => void;
 };
 
-export default function UserDetail({ user, goBack }: Props) {
+const defaultUser: User = {
+  user_id: '',
+  nama: '',
+  alamat: '',
+  tanggal_lahir: '',
+  email: '',
+  nomor_telepon: '',
+  password: '',
+  jabatan: 'staff',
+  manager_id: '',
+  gambar: '',
+  role: 'staff',
+  departemen: 'IT',
+};
+
+export default function UserDetail({ userId, goBack }: Props) {
   const [isEdit, setIsEdit] = useState(false);
-  const [form, setForm] = useState<User>(user);
-  const [preview, setPreview] = useState<string>(user.gambar);
+  const [form, setForm] = useState<User>(defaultUser);
+  const [preview, setPreview] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveError, setSaveError] = useState<string>('');
+
+  const fetchUserData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await userServices.getUserById(userId);
+      const userData = response.data.user || response;
+      setForm(userData);
+      setPreview(userData.gambar || '');
+      console.log(response.data)
+    } catch (err: any) {
+      setError(err.message || 'Gagal memuat data user');
+      console.error('Error fetching user:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
 
   const attendance = [
     { date: '2026-04-20', status: 'Hadir' },
@@ -18,33 +59,83 @@ export default function UserDetail({ user, goBack }: Props) {
     { date: '2026-04-22', status: 'Cuti' },
   ];
 
-  // 🔥 helper biar kosong jadi "-"
   const display = (val: any) => (val ? val : '-');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
   };
+const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const imageUrl = URL.createObjectURL(file);
+const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files[0]) {
+    const file = e.target.files[0];
 
-      setPreview(imageUrl);
-      setForm({ ...form, gambar: imageUrl });
+    setImageFile(file); // simpan file asli
+    setPreview(URL.createObjectURL(file));
+  }
+};
+const handleSave = async () => {
+  setSaveLoading(true);
+  setSaveError('');
+
+  try {
+    const formData = new FormData();
+
+    formData.append('nama', form.nama);
+    formData.append('email', form.email);
+    formData.append('alamat', form.alamat);
+    formData.append('tanggal_lahir', form.tanggal_lahir);
+    formData.append('nomor_telepon', form.nomor_telepon);
+    formData.append('jabatan', form.jabatan);
+    formData.append('role', form.role);
+    formData.append('departemen', form.departemen);
+    formData.append('manager_id',form.manager_id);
+    console.log(form.manager_id)
+
+    if (imageFile) {
+      formData.append('gambar', imageFile);
     }
-  };
 
-  const handleSave = () => {
-    console.log('SAVE DATA:', form);
+    await userServices.updateUser(userId, formData);
+
     setIsEdit(false);
-  };
+    alert('Data user berhasil diperbarui!');
+    await fetchUserData();
 
+  } catch (err: any) {
+    setSaveError(err.message || 'Gagal memperbarui user');
+  } finally {
+    setSaveLoading(false);
+  }
+};
   const renderStatus = (status: string) => {
     if (status === 'Hadir') return <Badge bg="success">Hadir</Badge>;
     if (status === 'Telat') return <Badge bg="warning">Telat</Badge>;
     return <Badge bg="danger">Cuti</Badge>;
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <Spinner animation="border" size="sm" className="mb-2" />
+        <p>Loading data user...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-danger text-center py-5">
+        <Alert variant="danger">{error}</Alert>
+        <Button onClick={goBack}>← Back</Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -97,18 +188,24 @@ export default function UserDetail({ user, goBack }: Props) {
             {!isEdit ? (
               <Row>
                 <Col md={6}>
-                  <p><b>User ID</b><br />{display(form.user_id)}</p>
+                  <p><b>User ID</b><br />{display(userId)}</p>
                   <p><b>Email</b><br />{display(form.email)}</p>
                   <p><b>Nomor Telp</b><br />{display(form.nomor_telepon)}</p>
+                  <p>
+                    <b>Tanggal Lahir</b><br />
+                    {form.tanggal_lahir ? form.tanggal_lahir.split('T')[0] : '-'}
+                  </p>
+
                 </Col>
                 <Col md={6}>
                   <p><b>Alamat</b><br />{display(form.alamat)}</p>
                   <p><b>Departemen</b><br />{display(form.departemen)}</p>
-                  <p><b>Manager ID</b><br />{display(form.manager_id)}</p>
+                  <p><b>Role</b><br />{display(form.role)}</p>
                 </Col>
               </Row>
             ) : (
               <Form>
+                {saveError && <Alert variant="danger" className="mb-3">{saveError}</Alert>}
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
@@ -130,24 +227,38 @@ export default function UserDetail({ user, goBack }: Props) {
                   <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label>Alamat</Form.Label>
-                      <Form.Control name="alamat" value={form.alamat} onChange={handleChange} />
+                      <Form.Control name="alamat" value={form.alamat || ''} onChange={handleChange} />
                     </Form.Group>
 
                     <Form.Group className="mb-3">
                       <Form.Label>Jabatan</Form.Label>
-                      <Form.Control name="jabatan" value={form.jabatan} onChange={handleChange} />
+                      <Form.Select name="jabatan" value={form.jabatan} onChange={handleChange}>
+                        <option value="staff">Staff</option>
+                        <option value="manager">Manager</option>
+                        <option value="supervisor">Supervisor</option>
+                      </Form.Select>
                     </Form.Group>
 
                     <Form.Group className="mb-3">
                       <Form.Label>Departemen</Form.Label>
-                      <Form.Control name="departemen" value={form.departemen} onChange={handleChange} />
+                      <Form.Select name="departemen" value={form.departemen} onChange={handleChange}>
+                        <option value="SALES">Sales</option>
+                        <option value="IT">IT</option>
+                        <option value="FINANCE">Finance</option>
+                        <option value="PURCHASE">Purchase</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
                 </Row>
 
-                <Button variant="success" onClick={handleSave}>
-                  Save Changes
-                </Button>
+                <div className="d-flex gap-2">
+                  <Button variant="success" onClick={handleSave} disabled={saveLoading}>
+                    {saveLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button variant="secondary" onClick={() => { setIsEdit(false); setSaveError(''); }}>
+                    Cancel
+                  </Button>
+                </div>
               </Form>
             )}
           </Col>

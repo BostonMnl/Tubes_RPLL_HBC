@@ -16,9 +16,9 @@ export default function LoginPage() {
     if (!isAuthenticated || !user) return;
 
     if (user.role === 'admin') {
-      navigate('/', { replace: true });
-    } else if (user.role === 'manager') {
-      navigate('/dashboard-manager', { replace: true });
+      navigate('/admin', { replace: true });
+    } else if (user.jabatan === 'manager') {
+      navigate('/manager', { replace: true });
     } else {
       setError('Akun tidak dikenali');
     }
