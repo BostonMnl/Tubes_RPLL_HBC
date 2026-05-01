@@ -34,6 +34,19 @@ export class Cuti extends Model {
     declare tanggal_akhir: Date;
 
     @Column({
+        type: DataType.ENUM('Cuti_Tahunan', 'Cuti_Sakit', 'Cuti_Melahirkan', 'Cuti_Lainnya'),
+        allowNull: false
+    })
+    declare jenis_cuti: string;
+
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
+    })
+    declare is_paid: boolean;
+
+    @Column({
         type: DataType.ENUM('Pending', 'Approved', 'Rejected'),
         defaultValue: 'Pending',
         allowNull: false

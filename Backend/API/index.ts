@@ -6,6 +6,9 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import adminUserManageRoutes from './routes/admin.userManage.routes';
 import promotionRoutes from './routes/promotion.routes';
+import reimburseRoutes from './routes/reimburse.routes';
+import cutiRoutes from './routes/cuti.routes';
+import gajiRoutes from './routes/gaji.routes';
 const app = express();
 
 // Middleware
@@ -19,6 +22,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
 app.use('/api/admin', adminUserManageRoutes);
 app.use('/api/promotion', promotionRoutes);
+app.use('/api/reimburse', reimburseRoutes);
+app.use('/api/cuti', cutiRoutes);
+app.use('/api/gaji', gajiRoutes);
 
 
 // Database connection
