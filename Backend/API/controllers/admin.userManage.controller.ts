@@ -196,7 +196,7 @@ export const getUsersProfile = async (
     }
 
     const user = await User.findAll({
-        attributes: ['user_id', 'nama', 'email','jabatan', 'role'],
+        attributes: ['user_id', 'nama', 'email','jabatan', 'role', 'departemen'],
     });
 
 

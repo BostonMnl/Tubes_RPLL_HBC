@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Gaji } from '../../models/gaji';
 import { ApiResponse } from '../middlewares/response.middleware';
+import { IsUUID } from 'sequelize-typescript';
 
 type AuthenticatedRequest = Request & {
     auth?: {
