@@ -21,9 +21,8 @@ export default function Sidebar() {
   const menu = [
     { path: '', label: 'Dashboard', icon: <BsSpeedometer2 /> },
 
-    ...(isAdmin
-      ? [{ path: '/user', label: 'User', icon: <BsPeople /> }]
-      : []),
+    { path: '/user', label: 'User', icon: <BsPeople /> },
+
 
     { path: '/tree', label: 'Management Tree', icon: <BsTree /> },
     { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
@@ -43,11 +42,10 @@ export default function Sidebar() {
             <Nav.Link
               key={fullPath}
               onClick={() => navigate(fullPath)}
-              className={`d-flex align-items-center gap-2 mb-2 rounded ${
-                location.pathname === fullPath
+              className={`d-flex align-items-center gap-2 mb-2 rounded ${location.pathname === fullPath
                   ? 'bg-primary text-white'
                   : 'text-dark'
-              }`}
+                }`}
             >
               <span style={{ fontSize: '18px' }}>{item.icon}</span>
               {item.label}
