@@ -12,7 +12,7 @@ if (!fs.existsSync(uploadDir)) {
 // Storage configuration
 const storage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
-    cb(null, uploadDir); // Simpan di folder uploads/products
+    cb(null, uploadDir); // Simpan di folder uploads
   },
   filename: (req: Request, file: Express.Multer.File, cb) => {
     // Generate unique filename

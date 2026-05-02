@@ -5,10 +5,11 @@ import sequelize from '../config/database';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import adminUserManageRoutes from './routes/admin.userManage.routes';
-import promotionRoutes from './routes/promotion.routes';
+import managerialRoutes from './routes/managerial.routes';
 import reimburseRoutes from './routes/reimburse.routes';
 import cutiRoutes from './routes/cuti.routes';
 import gajiRoutes from './routes/gaji.routes';
+import { apiErrorHandler } from './middlewares/response.middleware';
 const app = express();
 
 // Middleware
@@ -21,10 +22,13 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
 app.use('/api/admin', adminUserManageRoutes);
-app.use('/api/promotion', promotionRoutes);
+app.use('/api/managerial', managerialRoutes);
 app.use('/api/reimburse', reimburseRoutes);
 app.use('/api/cuti', cutiRoutes);
 app.use('/api/gaji', gajiRoutes);
+
+// Error handler (must be after routes)
+app.use(apiErrorHandler);
 
 
 // Database connection

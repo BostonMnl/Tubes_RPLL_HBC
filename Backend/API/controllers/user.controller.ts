@@ -13,6 +13,19 @@ type AuthenticatedRequest = Request & {
 	};
 };
 
+const buildGambarUrl = (req: Request, gambar: string | null): string | null => {
+	if (!gambar) {
+		return null;
+	}
+
+	const host = req.get('host');
+	if (!host) {
+		return gambar;
+	}
+
+	return `${req.protocol}://${host}${gambar}`;
+};
+
 export const forgotPassword = async (
 	req: Request,
 	_res: Response
@@ -90,6 +103,8 @@ export const resetPasswordWithToken = async (
 	user.password = await bcrypt.hash(newPassword, 10);
 	await user.save();
 
+	const gambarUrl = buildGambarUrl(req, user.gambar);
+
 	return {
 		code: 200,
 		message: 'Password has been reset successfully',
@@ -138,8 +153,11 @@ export const updateMyProfile = async (
 	}
 
 	const { alamat, nomor_telepon, gambar } = req.body;
+	const file = (req as Request & { file?: Express.Multer.File }).file;
+	const gambarFromFile = file ? `/uploads/${file.filename}` : undefined;
+	const hasFile = gambarFromFile !== undefined;
 
-	if (alamat === undefined && nomor_telepon === undefined && gambar === undefined) {
+	if (alamat === undefined && nomor_telepon === undefined && gambar === undefined && !hasFile) {
 		throw { code: 400, message: 'Nothing to update' };
 	}
 
@@ -156,7 +174,9 @@ export const updateMyProfile = async (
 		user.nomor_telepon = nomor_telepon;
 	}
 
-	if (gambar !== undefined) {
+	if (gambarFromFile !== undefined) {
+		user.gambar = gambarFromFile;
+	} else if (gambar !== undefined) {
 		user.gambar = gambar;
 	}
 

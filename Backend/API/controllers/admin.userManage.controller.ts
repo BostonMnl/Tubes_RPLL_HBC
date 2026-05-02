@@ -22,6 +22,19 @@ const getParamId = (req: Request): string => {
     return id;
 };
 
+const buildGambarUrl = (req: Request, gambar: string | null): string | null => {
+    if (!gambar) {
+        return null;
+    }
+
+    const host = req.get('host');
+    if (!host) {
+        return gambar;
+    }
+
+    return `${req.protocol}://${host}${gambar}`;
+};
+
 export const createUser = async (
     req: AuthenticatedRequest,
     _res: Response
@@ -68,6 +81,9 @@ export const createUser = async (
         gambar?: string;
         password?: string;
     };
+
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    const gambarFromFile = file ? `/uploads/${file.filename}` : undefined;
 
     if (!nama || !alamat || !email || !tanggal_lahir || !jabatan || !role || !departemen || !password) {
         throw {
@@ -130,9 +146,11 @@ export const createUser = async (
         jabatan : jabatan,
         role : role,
         departemen : departemen,
-        gambar: gambar ?? null,
+        gambar: gambarFromFile ?? gambar ?? null,
         password : password,
     });
+
+    const gambarUrl = buildGambarUrl(req, createdUser.gambar);
 
     return {
         code: 201,
@@ -145,7 +163,7 @@ export const createUser = async (
                 alamat: createdUser.alamat,
                 tanggal_lahir: createdUser.tanggal_lahir,
                 nomor_telepon: createdUser.nomor_telepon,
-                gambar: createdUser.gambar,
+                gambar: gambarUrl,
                 jabatan: createdUser.jabatan,
                 role: createdUser.role,
                 departemen: createdUser.departemen,
@@ -180,6 +198,8 @@ export const resetPassword = async (
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    const gambarUrl = buildGambarUrl(req, user.gambar);
 
     return {
         code: 200,
@@ -281,14 +301,30 @@ export const updateProfileById = async (
         manager_id?: string;
     };
 
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    const gambarFromFile = file ? `/uploads/${file.filename}` : undefined;
+
     const user = await User.findByPk(id);
     if (!user || user.deletedAt) {
         throw { code: 404, message: 'User not found' };
     }
 
-    if (nama === undefined || email === undefined || alamat === undefined || 
-        tanggal_lahir === undefined || jabatan === undefined || role === undefined || 
-        departemen === undefined || manager_id === undefined) {
+    const requiredFields = {
+        nama,
+        email,
+        alamat,
+        tanggal_lahir,
+        jabatan,
+        role,
+        departemen,
+        manager_id,
+    };
+
+    const missingFields = Object.entries(requiredFields)
+        .filter(([, value]) => value == null)
+        .map(([key]) => key);
+
+    if (missingFields.length > 0) {
         throw { code: 401, message: 'Mandatory fields are missing' };
     }
 
@@ -308,12 +344,17 @@ export const updateProfileById = async (
         }
     }
 
+
     user.nama = nama;
     user.email = email;
     user.alamat = alamat;
     user.tanggal_lahir = parsedTanggalLahir;
     if (nomor_telepon !== undefined) user.nomor_telepon = nomor_telepon;
-    if (gambar !== undefined ) user.gambar = gambar;
+    if (gambarFromFile !== undefined) {
+        user.gambar = gambarFromFile;
+    } else if (gambar !== undefined) {
+        user.gambar = gambar;
+    }
     user.jabatan = jabatan;
     user.role = role;
     user.departemen = departemen;

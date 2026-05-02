@@ -8,3 +8,8 @@ export const isStrongPassword = (password: string): boolean => {
     return strongPasswordRegex.test(password);
 };
 
+export const jabatanIndex = (value: string): number => {
+    const idx = JABATAN_VALUES.indexOf(value as typeof JABATAN_VALUES[number]);
+    if (idx === -1) throw { code: 400, message: 'Invalid jabatan' };
+    return idx; // 0=staff, 1=manager, 2=supervisor
+};
