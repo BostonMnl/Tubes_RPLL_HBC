@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
     // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, `product-${uniqueSuffix}${ext}`);
+    cb(null, `${uniqueSuffix}${ext}`);
   }
 });
 
@@ -32,7 +32,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: any) => {
 };
 
 // Multer configuration
-export const uploadProduct = multer({
+export const uploadImage = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {

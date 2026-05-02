@@ -1,4 +1,4 @@
-import { MailtrapClient } from 'mailtrap';
+import nodemailer from 'nodemailer';
 
 type PasswordResetEmailPayload = {
   to: string;
@@ -6,14 +6,33 @@ type PasswordResetEmailPayload = {
   resetToken: string;
 };
 
-let client: MailtrapClient | null = null;
+let transporter: nodemailer.Transporter | null = null;
 
-const getMailtrapClient = (token: string): MailtrapClient => {
-  if (!client) {
-    client = new MailtrapClient({ token });
+const getSmtpTransporter = (): nodemailer.Transporter => {
+  if (!transporter) {
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!host || !port || !user || !pass) {
+      throw new Error('SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS are required to send email via SMTP');
+    }
+
+    const secure = process.env.SMTP_SECURE === 'true';
+
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: {
+        user,
+        pass,
+      },
+    });
   }
 
-  return client;
+  return transporter;
 };
 
 export const sendPasswordResetEmail = async ({
@@ -21,25 +40,16 @@ export const sendPasswordResetEmail = async ({
   nama,
   resetToken,
 }: PasswordResetEmailPayload): Promise<void> => {
-  const mailtrapToken = process.env.MAILTRAP_TOKEN;
-
-  if (!mailtrapToken) {
-    throw new Error('MAILTRAP_TOKEN is required to send email via Mailtrap API');
-  }
-
   const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
   const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}`;
-  const sender = {
-    email: process.env.MAILTRAP_SENDER_EMAIL || 'hello@demomailtrap.co',
-    name: process.env.MAILTRAP_SENDER_NAME || 'HBC App',
-  };
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@example.com';
+  const fromName = process.env.SMTP_FROM_NAME || 'HBC App';
 
-  await getMailtrapClient(mailtrapToken).send({
-    from: sender,
-    to: [{ email: to }],
+  await getSmtpTransporter().sendMail({
+    from: `${fromName} <${fromEmail}>`,
+    to,
     subject: 'Password reset request',
     text: `Halo ${nama},\n\nKami menerima permintaan reset password untuk akun Anda. Silakan buka tautan berikut:\n${resetUrl}\n\nJika ini bukan Anda, abaikan email ini.`,
     html: `<p>Halo ${nama},</p><p>Kami menerima permintaan reset password untuk akun Anda.</p><p>Silakan buka tautan berikut:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Jika ini bukan Anda, abaikan email ini.</p>`,
-    category: 'Password Reset',
   });
 };

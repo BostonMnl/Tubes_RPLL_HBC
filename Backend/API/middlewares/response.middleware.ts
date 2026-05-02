@@ -54,15 +54,15 @@ export const apiErrorHandler: ErrorRequestHandler = (error, _req, res, next): vo
     message,
   };
 
-  console.error('Error:', {
-    message,
-    details,
-    stack: (error as Error).stack,
-  });
-
   if (details !== undefined) {
     payload.details = details;
   }
+
+  console.error('Error:', {
+    code: payload.code,
+    message: payload.message,
+    ...(payload.details ? { details: payload.details } : {}),
+  });
 
   res.status(statusCode).json(payload);
 };
