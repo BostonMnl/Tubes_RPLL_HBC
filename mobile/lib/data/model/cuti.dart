@@ -14,4 +14,15 @@ class Cuti {
     required this.tanggalAkhir,
     required this.status,
   });
+
+  factory Cuti.fromJson(Map<String, dynamic> json) {
+    return Cuti(
+      cutiId: json['cuti_id'].toString(),
+      disetujuiOleh: json['disetujui_oleh'] ?? '-',
+      keterangan: json['keterangan'] ?? '-',
+      tanggalMulai: DateTime.parse(json['tanggal_mulai']).toLocal(),
+      tanggalAkhir: DateTime.parse(json['tanggal_akhir']).toLocal(),
+      status: json['status'],
+    );
+  }
 }

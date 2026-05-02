@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:mobile/data/model/Gaji.dart';
+import 'package:mobile/data/model/cuti.dart';
 import 'package:mobile/data/model/user.dart';
 
 class ApiServices {
@@ -78,7 +80,6 @@ class ApiServices {
 
     final data = jsonDecode(response.body);
 
-    // ✅ SUCCESS
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (data['data'] == null) {
         throw Exception("Response tidak valid");
@@ -90,11 +91,86 @@ class ApiServices {
       };
     }
 
-    // ❌ ERROR HANDLING LEBIH RAPI
     final message = data['message'] ?? "Login gagal";
 
     throw Exception(_mapLoginError(message));
   }
+
+  //Leave
+  static Future<List<Cuti>> getMyCuti(String token) async {
+    final response = await http.get(
+      Uri.parse("$_baseUrl/cuti/me"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    print("CUTI RESPONSE: $data");
+
+    if (response.statusCode == 200) {
+      final List list = data['data']['cuti'];
+
+      return list.map((e) => Cuti.fromJson(e)).toList();
+    } else {
+      throw Exception(data['message']);
+    }
+  }
+
+  static Future<void> createCuti({
+    required String token,
+    required String keterangan,
+    required String jenisCuti,
+    required DateTime tanggalMulai,
+    required DateTime tanggalAkhir,
+  }) async {
+    final response = await http.post(
+      Uri.parse("$_baseUrl/cuti"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "keterangan": keterangan,
+        "jenis_cuti": jenisCuti,
+        "tanggal_mulai": tanggalMulai.toIso8601String(),
+        "tanggal_akhir": tanggalAkhir.toIso8601String(),
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(data['message'] ?? "Failed to create cuti");
+    }
+  }
+
+   static Future<List<Gaji>> getMyGaji(String token) async {
+    final response = await http.get(
+      Uri.parse("$_baseUrl/gaji/me"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    print("GAJI RESPONSE: $data");
+
+    if (response.statusCode == 200) {
+      final List list = data['data']['gaji'];
+
+      return list.map((e) => Gaji.fromJson(e)).toList();
+    } else {
+      throw Exception(data['message']);
+    }
+  }
+
+
+
 
   static Map<String, dynamic> _handleResponse(http.Response response) {
     final data = jsonDecode(response.body);

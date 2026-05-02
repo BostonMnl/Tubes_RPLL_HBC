@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/data/api/api_services.dart';
+import 'package:mobile/data/model/Gaji.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 class WageScreen extends StatefulWidget {
   const WageScreen({super.key});
@@ -9,21 +13,66 @@ class WageScreen extends StatefulWidget {
 
 class _WageScreenState extends State<WageScreen> {
   DateTime selectedDate = DateTime.now();
+  String token = "";
+  bool isLoadingToken = true;
 
-  final List<Map<String, dynamic>> salaryData = [
-    {"date": DateTime(2025, 1), "amount": 5000000},
-    {"date": DateTime(2024, 12), "amount": 4800000},
-    {"date": DateTime(2024, 11), "amount": 4900000},
-  ];
+  List<Gaji> salaryData = [];
+  bool isLoading = false;
+  String? errorMessage;
 
-  List<Map<String, dynamic>> get filteredData {
+  @override
+  void initState() {
+    super.initState();
+    loadToken();
+  }
+
+  Future<void> loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    token = prefs.getString('token') ?? '';
+
+    setState(() {
+      isLoadingToken = false;
+    });
+
+    fetchGaji(); // langsung fetch setelah token ready
+  }
+
+  Future<void> fetchGaji() async {
+    if (token.isEmpty) return;
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final data = await ApiServices.getMyGaji(token);
+
+      setState(() {
+        salaryData = data;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = e.toString();
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  final formatCurrency = NumberFormat("#,###", "id_ID");
+
+  List<Gaji> get filteredData {
     return salaryData.where((item) {
-      final d = item['date'] as DateTime;
+      final d = item.createdAt; // pastikan field ini ada di model Gaji
       return d.month == selectedDate.month && d.year == selectedDate.year;
     }).toList();
   }
 
-  int get totalSalary => filteredData.fold(0, (sum, item) => sum + (item['amount'] as int));
+  int get totalSalary =>
+      filteredData.fold(0, (sum, item) => sum + item.nominal.toInt());
 
   @override
   Widget build(BuildContext context) {
@@ -35,19 +84,21 @@ class _WageScreenState extends State<WageScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 20),
-            _buildMonthPicker(context),
-            const SizedBox(height: 20),
-            _buildReportCard(),
-            const SizedBox(height: 20),
-            _buildHistoryTitle(),
-            const SizedBox(height: 10),
-            Expanded(child: _buildList()),
-          ],
-        ),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : errorMessage != null
+            ? Center(child: Text(errorMessage!))
+            : Column(
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 20),
+                  _buildMonthPicker(context),
+                  const SizedBox(height: 20),
+                  _buildHistoryTitle(),
+                  const SizedBox(height: 10),
+                  Expanded(child: _buildList()),
+                ],
+              ),
       ),
     );
   }
@@ -68,7 +119,7 @@ class _WageScreenState extends State<WageScreen> {
           const Text("Total Salary", style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 10),
           Text(
-            "Rp $totalSalary",
+            "Rp ${formatCurrency.format(totalSalary)}",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 26,
@@ -106,56 +157,27 @@ class _WageScreenState extends State<WageScreen> {
               });
             }
           },
-        )
+        ),
       ],
     );
   }
 
   String _monthName(int month) {
     const months = [
-      "January","February","March","April","May","June",
-      "July","August","September","October","November","December"
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     return months[month - 1];
-  }
-
-  Widget _buildReportCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.pink[50],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          Column(
-            children: [
-              Icon(Icons.trending_up, color: Colors.pink),
-              SizedBox(height: 5),
-              Text("Income"),
-              Text("+700K", style: TextStyle(color: Colors.pink)),
-            ],
-          ),
-          Column(
-            children: [
-              Icon(Icons.trending_down, color: Colors.pink),
-              SizedBox(height: 5),
-              Text("Penalty"),
-              Text("-200K", style: TextStyle(color: Colors.pink)),
-            ],
-          ),
-          Column(
-            children: [
-              Icon(Icons.account_balance_wallet, color: Colors.pink),
-              SizedBox(height: 5),
-              Text("Net"),
-              Text("5M", style: TextStyle(color: Colors.pink)),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildHistoryTitle() {
@@ -177,15 +199,18 @@ class _WageScreenState extends State<WageScreen> {
       itemCount: filteredData.length,
       itemBuilder: (context, index) {
         final item = filteredData[index];
-        final date = item['date'] as DateTime;
 
         return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
           child: ListTile(
             leading: const Icon(Icons.attach_money, color: Colors.pink),
-            title: Text("${_monthName(date.month)} ${date.year}"),
+            title: Text(
+              "${_monthName(item.createdAt.month)} ${item.createdAt.year}",
+            ),
             trailing: Text(
-              "Rp ${item['amount']}",
+              "Rp ${formatCurrency.format(item.nominal)}",
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.pink,
