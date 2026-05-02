@@ -43,20 +43,43 @@ export const userServices = {
   },
 
   // Create new user
-  createUser: async (userData: Partial<User>) => {
-    const response = await fetchWithToken(`${API_BASE_URL}/admin/users`, {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
-    return handleResponse(response);
-  },
+createUser: async (userData: Partial<User> | FormData) => {
+  const isFormData = userData instanceof FormData;
+
+  const response = await fetchWithToken(`${API_BASE_URL}/admin/users`, {
+    method: 'POST',
+    body: isFormData ? userData : JSON.stringify(userData),
+    headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+  });
+
+  return handleResponse(response);
+},
 
   // Update user
-  updateUser: async (userId: string, userData: Partial<User> | FormData) => {
-    const response = await fetchWithToken(`${API_BASE_URL}/admin/users/${userId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(userData),
-    });
+  updateUser: async (
+    userId: string,
+    userData: Partial<User> | FormData
+  ) => {
+    const isFormData = userData instanceof FormData;
+
+    console.log(isFormData)
+    console.log(userData)
+
+    const body: BodyInit | null = isFormData
+      ? userData
+      : JSON.stringify(userData);
+
+    const response = await fetchWithToken(
+      `${API_BASE_URL}/admin/users/${userId}`,
+      {
+        method: 'PATCH',
+        body,
+        headers: isFormData
+          ? undefined
+          : { 'Content-Type': 'application/json' },
+      }
+    );
+
     return handleResponse(response);
   },
 
