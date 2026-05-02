@@ -44,6 +44,7 @@ export default function UserPage() {
     try {
       const response = await userServices.getAllUsers();
       const userList = response.data?.user || response.user || [];
+      console.log(userList)
       setUsers(userList);
     } catch (err: any) {
       setError(err.message || 'Gagal memuat data user');
@@ -128,81 +129,131 @@ export default function UserPage() {
   }
 
   return (
-    <Card className="p-4 shadow-sm">
-      <div className="d-flex justify-content-between align-items-center">
-        <h4>User List</h4>
+    <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
 
-        <Button variant="primary" onClick={() => setShowAddModal(true)}>
-          + Add User
-        </Button>
-      </div>
+      {/* HEADER */}
+      <Card
+        className="p-4 mb-4 shadow-sm"
+        style={{
+          borderRadius: '16px',
+          border: 'none',
+          background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+          color: 'white'
+        }}
+      >
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <h3 className="mb-1">User Management</h3>
+            <small>Manage employee accounts</small>
+          </div>
 
-      <Table striped hover className="mt-3">
-        <thead>
-          <tr>
-            <th>Nama</th>
-            <th>Email</th>
-            <th>Jabatan</th>
-            <th>Departemen</th>
-            <th>Action</th>
-          </tr>
-        </thead>
+          <Button
+            onClick={() => setShowAddModal(true)}
+            style={{
+              background: 'white',
+              color: '#ff3d7f',
+              border: 'none',
+              borderRadius: '10px'
+            }}
+          >
+            + Add User
+          </Button>
+        </div>
+      </Card>
 
-        {pageLoading ? (
-          <tbody>
+      {/* TABLE */}
+      <Card
+        className="p-4 shadow-sm"
+        style={{
+          borderRadius: '16px',
+          border: 'none'
+        }}
+      >
+        <h5 className="mb-3" style={{ color: '#ff3d7f' }}>
+          User List
+        </h5>
+
+        <Table hover className="mt-3 align-middle">
+          <thead style={{ background: '#ffe4ec' }}>
             <tr>
-              <td colSpan={6} className="text-center py-4">
-                <Spinner animation="border" size="sm" /> Loading users...
-              </td>
+              <th>Nama</th>
+              <th>Email</th>
+              <th>Jabatan</th>
+              <th>Departemen</th>
+              <th></th>
             </tr>
-          </tbody>
-        ) : error ? (
-          <tbody>
-            <tr>
-              <td colSpan={6} className="text-center py-4">
-                <Alert variant="danger">{error}</Alert>
-              </td>
-            </tr>
-          </tbody>
-        ) : (
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.user_id}>
-                <td>{u.nama}</td>
-                <td>{u.email}</td>
-                <td>{u.jabatan}</td>
-                <td>{u.departemen}</td>
-                <td className="d-flex gap-2">
-                  <Button size="sm" onClick={() => setSelectedId(u.user_id)}>
-                    Detail
-                  </Button>
+          </thead>
 
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => handleDelete(u.user_id)}
-                  >
-                    Delete
-                  </Button>
+          {pageLoading ? (
+            <tbody>
+              <tr>
+                <td colSpan={6} className="text-center py-4">
+                  <Spinner animation="border" variant="danger" />
                 </td>
               </tr>
-            ))}
-          </tbody>
-        )}
-      </Table>
+            </tbody>
+          ) : error ? (
+            <tbody>
+              <tr>
+                <td colSpan={6}>
+                  <Alert variant="danger">{error}</Alert>
+                </td>
+              </tr>
+            </tbody>
+          ) : (
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.user_id}>
+                  <td style={{ fontWeight: 500 }}>{u.nama}</td>
+                  <td>{u.email}</td>
+                  <td>{u.jabatan}</td>
+                  <td>{u.departemen}</td>
 
-      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add User</Modal.Title>
+                  <td className="text-end">
+                    <Button
+                      size="sm"
+                      className="me-2"
+                      style={{
+                        background: '#ffc0cb',
+                        border: 'none',
+                        borderRadius: '8px'
+                      }}
+                      onClick={() => setSelectedId(u.user_id)}
+                    >
+                      Detail
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => handleDelete(u.user_id)}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          )}
+        </Table>
+      </Card>
+
+      {/* MODAL */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
+        <Modal.Header closeButton style={{ background: '#fff0f5' }}>
+          <Modal.Title style={{ color: '#ff3d7f' }}>
+            Add User
+          </Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
           {formError && <Alert variant="danger">{formError}</Alert>}
+
           <Form>
-            <Form.Control className="mb-2" name="nama" placeholder="Nama" onChange={handleChange}  isInvalid={!!fieldErrors.nama} />
-            <Form.Control className="mb-2" name="alamat" placeholder="Alamat" onChange={handleChange}   isInvalid={!!fieldErrors.alamat}/>
-            <Form.Control className="mb-2" name="email" placeholder="Email" onChange={handleChange}   isInvalid={!!fieldErrors.email}/>
-            <Form.Control className="mb-2" name="nomor_telepon" placeholder="Nomor Telepon" onChange={handleChange}   isInvalid={!!fieldErrors.nomor_telepon}/>
+            <Form.Control className="mb-2" name="nama" placeholder="Nama" onChange={handleChange} isInvalid={!!fieldErrors.nama} />
+            <Form.Control className="mb-2" name="alamat" placeholder="Alamat" onChange={handleChange} isInvalid={!!fieldErrors.alamat} />
+            <Form.Control className="mb-2" name="email" placeholder="Email" onChange={handleChange} isInvalid={!!fieldErrors.email} />
+            <Form.Control className="mb-2" name="nomor_telepon" placeholder="Nomor Telepon" onChange={handleChange} isInvalid={!!fieldErrors.nomor_telepon} />
 
             <Form.Label>Jabatan :</Form.Label>
             <Form.Select className="mb-2" name="jabatan" onChange={handleChange}>
@@ -242,7 +293,8 @@ export default function UserPage() {
                     width: 80,
                     height: 80,
                     borderRadius: '50%',
-                    objectFit: 'cover'
+                    objectFit: 'cover',
+                    border: '3px solid #ff3d7f'
                   }}
                 />
               </div>
@@ -254,11 +306,19 @@ export default function UserPage() {
           <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={formLoading}>
             Cancel
           </Button>
-          <Button variant="success" onClick={handleAdd} disabled={formLoading}>
+
+          <Button
+            onClick={handleAdd}
+            disabled={formLoading}
+            style={{
+              background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+              border: 'none'
+            }}
+          >
             {formLoading ? 'Saving...' : 'Save'}
           </Button>
         </Modal.Footer>
       </Modal>
-    </Card>
+    </div>
   );
 }

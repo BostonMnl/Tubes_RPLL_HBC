@@ -4,37 +4,37 @@ import { Badge, Card } from 'react-bootstrap';
 import type { User } from '../model/User';
 
 type TreeUser = User & {
-    children?: TreeUser[];
+  children?: TreeUser[];
 };
 
 export function buildTree(users: User[]): TreeUser[] {
-    const map = new Map<string, TreeUser>();
+  const map = new Map<string, TreeUser>();
 
-    users.forEach(u => {
-        map.set(u.user_id, { ...u, children: [] });
-    });
+  users.forEach(u => {
+    map.set(u.user_id, { ...u, children: [] });
+  });
 
-    const roots: TreeUser[] = [];
+  const roots: TreeUser[] = [];
 
-    users.forEach(u => {
-        const node = map.get(u.user_id)!;
+  users.forEach(u => {
+    const node = map.get(u.user_id)!;
 
-        if (u.manager_id && map.has(u.manager_id)) {
-            map.get(u.manager_id)!.children!.push(node);
-        } else {
-            roots.push(node);
-        }
-    });
+    if (u.manager_id && map.has(u.manager_id)) {
+      map.get(u.manager_id)!.children!.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
 
-    return roots;
+  return roots;
 }
 
 export default function ManagementTree() {
-    const { user } = useAuth();
-    const [tree, setTree] = useState<TreeUser[]>([]);
+  const { user } = useAuth();
+  const [tree, setTree] = useState<TreeUser[]>([]);
 
-
-    const dummyUsers: User[] = [
+  // 🔥 tetap pakai dummy dulu
+   const dummyUsers: User[] = [
         {
             user_id: '1',
             nama: 'Budi Santoso',
@@ -161,83 +161,133 @@ export default function ManagementTree() {
         },
      ];
 
-    useEffect(() => {
-        const treeData = buildTree(dummyUsers);
-        setTree(treeData);
-    }, []);
 
-    const isAdmin = user?.role === 'admin';
+  useEffect(() => {
+    setTree(buildTree(dummyUsers));
+  }, []);
 
-    // 👉 manager cuma lihat subtree dia
-    const filterTree = (nodes: TreeUser[]): TreeUser[] => {
-        if (isAdmin) return nodes;
+  const isAdmin = user?.role === 'admin';
 
-        const findSubtree = (node: TreeUser): TreeUser | null => {
-            if (node.user_id === user?.user_id) return node;
+  const filterTree = (nodes: TreeUser[]): TreeUser[] => {
+    if (isAdmin) return nodes;
 
-            for (const child of node.children || []) {
-                const found = findSubtree(child);
-                if (found) return found;
-            }
-            return null;
-        };
+    const findSubtree = (node: TreeUser): TreeUser | null => {
+      if (node.user_id === user?.user_id) return node;
 
-        for (const root of nodes) {
-            const found = findSubtree(root);
-            if (found) return [found];
-        }
-
-        return [];
+      for (const child of node.children || []) {
+        const found = findSubtree(child);
+        if (found) return found;
+      }
+      return null;
     };
 
-    const visibleTree = filterTree(tree);
-
-    return (
-        <div className="p-4">
-            <h4 className="mb-4">Management Structure</h4>
-
-            {visibleTree.map(node => (
-                <TreeNode key={node.user_id} node={node} />
-            ))}
-
-            {visibleTree.length === 0 && (
-                <Card>
-                    <Card.Body>No data available</Card.Body>
-                </Card>
-            )}
-        </div>
-    );
-
-    function TreeNode({ node, level = 0 }: { node: TreeUser; level?: number }) {
-        return (
-            <div style={{ marginLeft: level * 50 }} className="mb-3">
-                <Card className="shadow-sm border-2">
-                    <Card.Body className="py-2 px-3 d-flex justify-content-between align-items-center">
-
-                        <div>
-                            <div className="fw-semibold">{node.nama}</div>
-                            <small className="text-muted">
-                                {node.jabatan} • {node.departemen}
-                            </small>
-                        </div>
-
-                        <div className="d-flex gap-2">
-                            <Badge bg="secondary">{node.role}</Badge>
-                            <Badge bg="primary">{node.departemen}</Badge>
-                        </div>
-
-                    </Card.Body>
-                </Card>
-
-                {node.children && node.children.length > 0 && (
-                    <div className="mt-2">
-                        {node.children.map(child => (
-                            <TreeNode key={child.user_id} node={child} level={level + 1} />
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
+    for (const root of nodes) {
+      const found = findSubtree(root);
+      if (found) return [found];
     }
-}
 
+    return [];
+  };
+
+  const visibleTree = filterTree(tree);
+
+  return (
+    <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
+
+      {/* HEADER */}
+      <Card
+        className="p-4 mb-4 shadow-sm"
+        style={{
+          borderRadius: '16px',
+          border: 'none',
+          background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+          color: 'white'
+        }}
+      >
+        <h3 className="mb-1">Management Structure</h3>
+        <small>Organizational hierarchy overview</small>
+      </Card>
+
+      {/* TREE */}
+      {visibleTree.map(node => (
+        <TreeNode key={node.user_id} node={node} />
+      ))}
+
+      {visibleTree.length === 0 && (
+        <Card className="p-3 text-center">
+          No data available
+        </Card>
+      )}
+    </div>
+  );
+
+  function TreeNode({ node, level = 0 }: { node: TreeUser; level?: number }) {
+    return (
+      <div
+        style={{
+          marginLeft: level * 40,
+          position: 'relative'
+        }}
+        className="mb-3"
+      >
+        {/* GARIS TREE */}
+        {level > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              left: -20,
+              top: 0,
+              bottom: 0,
+              width: 2,
+              background: '#ffd1dc'
+            }}
+          />
+        )}
+
+        <Card
+          className="shadow-sm"
+          style={{
+            borderRadius: '14px',
+            border: 'none',
+            background: 'white'
+          }}
+        >
+          <Card.Body className="py-3 px-3 d-flex justify-content-between align-items-center">
+
+            {/* INFO */}
+            <div>
+              <div style={{ fontWeight: 600, color: '#333' }}>
+                {node.nama}
+              </div>
+              <small style={{ color: '#888' }}>
+                {node.jabatan} • {node.departemen}
+              </small>
+            </div>
+
+            {/* BADGE */}
+            <div className="d-flex gap-2">
+              <Badge bg="secondary">{node.role}</Badge>
+              <Badge style={{ background: '#ff6fa5' }}>
+                {node.departemen}
+              </Badge>
+            </div>
+
+          </Card.Body>
+        </Card>
+
+        {/* CHILDREN */}
+        {node.children && node.children.length > 0 && (
+          <div className="mt-2">
+            {node.children.map(child => (
+              <TreeNode
+                key={child.user_id}
+                node={child}
+                level={level + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+}

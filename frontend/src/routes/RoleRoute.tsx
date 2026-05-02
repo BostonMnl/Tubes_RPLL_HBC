@@ -13,15 +13,20 @@ export default function RoleRoute({
 }) {
   const { user } = useAuth();
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/" />;
+  console.log("jabatan", user.jabatan)
 
-  const roleOk = allowRole ? allowRole.includes(user.role) : false;
+  const normalize = (val?: string) => val?.toLowerCase().trim();
+  const roleOk = allowRole
+    ? allowRole.map(normalize).includes(normalize(user.role))
+    : false;
+
   const jabatanOk = allowJabatan
-    ? allowJabatan.includes(user.jabatan)
+    ? allowJabatan.map(normalize).includes(normalize(user.jabatan))
     : false;
 
   if (!(roleOk || jabatanOk)) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
   return children;

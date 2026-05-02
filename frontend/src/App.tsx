@@ -35,7 +35,7 @@ function DashboardLayout() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<LoginPage />} />
 
       {/* ===== ADMIN ===== */}
       <Route
@@ -55,6 +55,7 @@ export default function App() {
         <Route path="wage" element={<WageSettings />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="tree" element={<ManagementTree />} />
+        <Route path="profile" element={<AdminProfile />} />
       </Route>
 
       {/* ===== MANAGER ===== */}
@@ -73,6 +74,7 @@ export default function App() {
         <Route path="reimburse" element={<ReimbursePage />} />
         <Route path="wage" element={<WageSettings />} />
         <Route path="tree" element={<ManagementTree />} />
+        <Route path="profile" element={<AdminProfile />} />
       </Route>
     </Routes>
   );

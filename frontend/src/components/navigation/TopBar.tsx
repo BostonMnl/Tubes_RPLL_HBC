@@ -1,18 +1,20 @@
-import { Navbar, Form, FormControl,  Dropdown } from 'react-bootstrap';
+import { Navbar, Form, FormControl, Dropdown } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
 
 export default function Topbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  // Menentukan base path berdasarkan role, sama seperti logika di Sidebar
+  const isAdmin = user?.role === 'admin';
+  const basePath = isAdmin ? '/admin' : '/manager';
+
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/');
   };
 
-  // Mengambil inisial nama (contoh: "Sarah Johnson" -> "SJ")
   const getInitials = (name?: string) => {
     if (!name) return 'U';
     const parts = name.trim().split(' ');
@@ -21,31 +23,52 @@ export default function Topbar() {
   };
 
   return (
-    <Navbar bg="light" className="px-4 shadow-sm">
+    <Navbar bg="white" className="px-4 shadow-sm border-bottom">
+      {/* Search Bar - Menyesuaikan dengan gaya Sidebar yang bersih */}
       <Form className="d-flex w-50">
-        <FormControl placeholder="Search..." />
+        <FormControl 
+          placeholder="Search..." 
+          className="bg-light border-0" 
+          style={{ borderRadius: '8px' }}
+        />
       </Form>
 
       <div className="ms-auto d-flex align-items-center gap-3">
+        {/* Info Role (Opsional, untuk memperjelas posisi user) */}
+        <span className="badge bg-light text-primary border me-2">
+          {user?.role?.toUpperCase()}
+        </span>
+
         <Dropdown align="end">
           <Dropdown.Toggle
             variant="light"
-            className="d-flex align-items-center gap-2 border-0 bg-transparent"
+            className="d-flex align-items-center gap-2 border-0 bg-transparent p-0"
           >
             <div
-              className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-              style={{ width: 40, height: 40 }}
+              className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
+              style={{ width: 38, height: 38, fontSize: '14px' }}
             >
-            {getInitials(user?.nama)}
+              {getInitials(user?.nama)}
             </div>
-          <span>{user?.nama || 'User'}</span>
+            <div className="text-start d-none d-sm-block">
+              <p className="mb-0 fw-semibold text-dark" style={{ fontSize: '14px', lineHeight: '1.2' }}>
+                {user?.nama || 'User'}
+              </p>
+            </div>
           </Dropdown.Toggle>
 
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => navigate('/profile')}>Profile</Dropdown.Item>
-            <Dropdown.Item href="/settings">Settings</Dropdown.Item>
+          <Dropdown.Menu className="shadow border-0 mt-2">
+            {/* Navigasi profil sekarang mengarah ke basePath yang sesuai */}
+            <Dropdown.Item onClick={() => navigate(`${basePath}/profile`)}>
+              My Profile
+            </Dropdown.Item>
+            <Dropdown.Item onClick={() => navigate(`${basePath}/settings`)}>
+              Settings
+            </Dropdown.Item>
             <Dropdown.Divider />
-          <Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
+            <Dropdown.Item onClick={handleLogout} className="text-danger">
+              Logout
+            </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
       </div>

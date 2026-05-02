@@ -1,59 +1,84 @@
-import { Card, Table, Button, Modal, Form, Badge, Row, Col } from 'react-bootstrap';
-import { useState } from 'react';
+import {
+  Card,
+  Table,
+  Button,
+  Modal,
+  Form,
+  Badge,
+  Row,
+  Col,
+  Spinner,
+  Alert
+} from 'react-bootstrap';
+import { useState, useEffect } from 'react';
 import type { Reimburse } from '../../model/Reimburse';
+import { reimburseServices } from '../../services/apiServices';
 
 export default function ReimbursePage() {
-  const [data, setData] = useState<Reimburse[]>([
-    {
-      reimburse_id: 'R001',
-      user_id: 'U001',
-      keterangan: 'Transport',
-      nominal: 200000,
-      gambar: '',
-      status: 'pending',
-      tanggal: '2026-04-24'
-    }
-  ]);
-
+  const [data, setData] = useState<Reimburse[]>([]);
   const [selected, setSelected] = useState<Reimburse | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // 🔥 FORMAT RUPIAH
+  // =========================
+  // FETCH DATA
+  // =========================
+  const fetchReimburse = async () => {
+    try {
+      setLoading(true);
+      const res = await reimburseServices.getAllReimburse();
+      console.log(res)
+      setData(res.data.reimburse || res);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReimburse();
+  }, []);
+
+  // =========================
+  // FORMAT
+  // =========================
   const formatRupiah = (num: number) =>
     new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR'
     }).format(num);
 
-  // 🔥 HANDLE EMPTY
   const display = (val: any) => (val ? val : '-');
 
-  // APPROVE
-  const approve = (id: string) => {
-    setData(prev =>
-      prev.map(d =>
-        d.reimburse_id === id ? { ...d, status: 'approved' } : d
-      )
-    );
+  // =========================
+  // UPDATE STATUS (API)
+  // =========================
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      await reimburseServices.updateReimburseStatus(id, status);
+      await fetchReimburse(); // refresh data
+    } catch (err) {
+      alert('Gagal update status');
+    }
   };
 
-  // REJECT
-  const reject = (id: string) => {
-    setData(prev =>
-      prev.map(d =>
-        d.reimburse_id === id ? { ...d, status: 'rejected' } : d
-      )
-    );
-  };
+  const approve = (id: string) => updateStatus(id, 'approved');
+  const reject = (id: string) => updateStatus(id, 'rejected');
 
-  // DELETE
+  // =========================
+  // DELETE (optional local)
+  // =========================
   const remove = (id: string) => {
     if (confirm('Yakin hapus data?')) {
       setData(prev => prev.filter(d => d.reimburse_id !== id));
     }
   };
 
-  // EDIT
+  // =========================
+  // EDIT HANDLER
+  // =========================
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -79,81 +104,127 @@ export default function ReimbursePage() {
     setEditMode(false);
   };
 
+  // =========================
+  // STATUS BADGE
+  // =========================
   const renderStatus = (status: string) => {
     if (status === 'approved') return <Badge bg="success">Approved</Badge>;
     if (status === 'rejected') return <Badge bg="danger">Rejected</Badge>;
-    return <Badge bg="warning">Pending</Badge>;
+    return (
+      <Badge bg="warning" text="dark">
+        Pending
+      </Badge>
+    );
   };
 
   return (
-    <Card className="p-4 shadow border-0 rounded-4">
-      <h4 className="fw-semibold">Reimbursement</h4>
+    <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
+      
+      {/* HEADER */}
+      <Card
+        className="p-4 mb-4 shadow-sm"
+        style={{
+          borderRadius: '16px',
+          border: 'none',
+          background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+          color: 'white'
+        }}
+      >
+        <h3 className="mb-1">Reimbursement</h3>
+        <small>Manage employee reimbursements</small>
+      </Card>
 
-      <Table hover responsive className="mt-3 align-middle">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>User</th>
-            <th>Keterangan</th>
-            <th>Nominal</th>
-            <th>Status</th>
-            <th style={{ width: '260px' }}>Action</th>
-          </tr>
-        </thead>
+      {/* ERROR */}
+      {error && <Alert variant="danger">{error}</Alert>}
 
-        <tbody>
-          {data.map(d => (
-            <tr key={d.reimburse_id}>
-              <td>{d.reimburse_id}</td>
-              <td>{d.user_id}</td>
-              <td>{display(d.keterangan)}</td>
-              <td className="fw-semibold text-success">
-                {formatRupiah(d.nominal)}
-              </td>
-              <td>{renderStatus(d.status)}</td>
+      {/* TABLE */}
+      <Card className="p-4 shadow-sm border-0" style={{ borderRadius: '16px' }}>
+        <h5 className="mb-3" style={{ color: '#ff3d7f' }}>
+          Reimbursement List
+        </h5>
 
-              <td>
-                <div className="d-flex gap-2 flex-wrap">
-                  <Button size="sm" variant="info" onClick={() => setSelected(d)}>
-                    Detail
-                  </Button>
+        {loading ? (
+          <div className="text-center py-5">
+            <Spinner />
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <Table hover className="align-middle">
+              <thead style={{ background: '#ffe4ec' }}>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Keterangan</th>
+                  <th>Nominal</th>
+                  <th>Status</th>
+                  <th className="text-end">Action</th>
+                </tr>
+              </thead>
 
-                  <Button
-                    size="sm"
-                    variant="success"
-                    disabled={d.status === 'approved'}
-                    onClick={() => approve(d.reimburse_id)}
-                  >
-                    Approve
-                  </Button>
+              <tbody>
+                {data.map(d => (
+                  <tr key={d.reimburse_id}>
+                    <td>{d.reimburse_id}</td>
+                    <td>{d.user_id}</td>
+                    <td>{display(d.keterangan)}</td>
 
-                  <Button
-                    size="sm"
-                    variant="warning"
-                    disabled={d.status === 'rejected'}
-                    onClick={() => reject(d.reimburse_id)}
-                  >
-                    Reject
-                  </Button>
+                    <td style={{ color: '#ff3d7f', fontWeight: 600 }}>
+                      {formatRupiah(d.nominal)}
+                    </td>
 
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => remove(d.reimburse_id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+                    <td>{renderStatus(d.status)}</td>
 
-      {/* 🔥 MODAL */}
+                    <td className="text-end">
+                      <div className="d-flex gap-2 justify-content-end flex-wrap">
+                        <Button
+                          size="sm"
+                          style={{ background: '#ffc0cb', border: 'none' }}
+                          onClick={() => setSelected(d)}
+                        >
+                          Detail
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="success"
+                          disabled={d.status === 'approved'}
+                          onClick={() => approve(d.reimburse_id)}
+                        >
+                          ✔
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="warning"
+                          disabled={d.status === 'rejected'}
+                          onClick={() => reject(d.reimburse_id)}
+                        >
+                          ✖
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => remove(d.reimburse_id)}
+                        >
+                          🗑
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        )}
+      </Card>
+
+      {/* MODAL */}
       <Modal show={!!selected} onHide={() => setSelected(null)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Detail Reimbursement</Modal.Title>
+        <Modal.Header closeButton style={{ background: '#fff0f5' }}>
+          <Modal.Title style={{ color: '#ff3d7f' }}>
+            Detail Reimbursement
+          </Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
@@ -167,7 +238,7 @@ export default function ReimbursePage() {
 
               <Col md={6}>
                 <p><b>Nominal</b><br />
-                  <span className="text-success fw-bold">
+                  <span style={{ color: '#ff3d7f', fontWeight: 600 }}>
                     {formatRupiah(selected.nominal)}
                   </span>
                 </p>
@@ -180,17 +251,16 @@ export default function ReimbursePage() {
                     src={selected.gambar}
                     alt="bukti"
                     className="mt-3"
-                    style={{ width: '100%', borderRadius: 10 }}
+                    style={{ width: '100%', borderRadius: 12 }}
                   />
                 </Col>
               )}
             </Row>
           )}
 
-          {/* EDIT MODE */}
           {selected && editMode && (
             <Form>
-              <Form.Group className="mb-2">
+              <Form.Group className="mb-3">
                 <Form.Label>Keterangan</Form.Label>
                 <Form.Control
                   name="keterangan"
@@ -234,6 +304,6 @@ export default function ReimbursePage() {
           )}
         </Modal.Footer>
       </Modal>
-    </Card>
+    </div>
   );
 }
