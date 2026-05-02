@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Row, Col, Table, Form, Badge, Alert, Spinner } from 'react-bootstrap';
 import type { User } from '../../model/User';
 import { userServices } from '../../services/apiServices';
+import dummny from '../../../public/dummy.jpg'
+
 
 type Props = {
   userId: string;
@@ -39,7 +41,7 @@ export default function UserDetail({ userId, goBack }: Props) {
       const response = await userServices.getUserById(userId);
       const userData = response.data.user || response;
       setForm(userData);
-      setPreview(userData.gambar || '');
+      setPreview(userData.gambar || dummny);
       console.log(response.data)
     } catch (err: any) {
       setError(err.message || 'Gagal memuat data user');
@@ -69,50 +71,50 @@ export default function UserDetail({ userId, goBack }: Props) {
       [e.target.name]: e.target.value
     });
   };
-const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files && e.target.files[0]) {
-    const file = e.target.files[0];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
 
-    setImageFile(file); // simpan file asli
-    setPreview(URL.createObjectURL(file));
-  }
-};
-const handleSave = async () => {
-  setSaveLoading(true);
-  setSaveError('');
-
-  try {
-    const formData = new FormData();
-
-    formData.append('nama', form.nama);
-    formData.append('email', form.email);
-    formData.append('alamat', form.alamat);
-    formData.append('tanggal_lahir', form.tanggal_lahir);
-    formData.append('nomor_telepon', form.nomor_telepon);
-    formData.append('jabatan', form.jabatan);
-    formData.append('role', form.role);
-    formData.append('departemen', form.departemen);
-    formData.append('manager_id',form.manager_id);
-    console.log(form.manager_id)
-
-    if (imageFile) {
-      formData.append('gambar', imageFile);
+      setImageFile(file); // simpan file asli
+      setPreview(URL.createObjectURL(file));
     }
+  };
+  const handleSave = async () => {
+    setSaveLoading(true);
+    setSaveError('');
 
-    await userServices.updateUser(userId, formData);
+    try {
+      const formData = new FormData();
 
-    setIsEdit(false);
-    alert('Data user berhasil diperbarui!');
-    await fetchUserData();
+      formData.append('nama', form.nama);
+      formData.append('email', form.email);
+      formData.append('alamat', form.alamat);
+      formData.append('tanggal_lahir', form.tanggal_lahir);
+      formData.append('nomor_telepon', form.nomor_telepon);
+      formData.append('jabatan', form.jabatan);
+      formData.append('role', form.role);
+      formData.append('departemen', form.departemen);
+      formData.append('manager_id', form.manager_id);
+      console.log(form.manager_id)
 
-  } catch (err: any) {
-    setSaveError(err.message || 'Gagal memperbarui user');
-  } finally {
-    setSaveLoading(false);
-  }
-};
+      if (imageFile) {
+        formData.append('gambar', imageFile);
+      }
+
+      await userServices.updateUser(userId, formData);
+
+      setIsEdit(false);
+      alert('Data user berhasil diperbarui!');
+      await fetchUserData();
+
+    } catch (err: any) {
+      setSaveError(err.message || 'Gagal memperbarui user');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
   const renderStatus = (status: string) => {
     if (status === 'Hadir') return <Badge bg="success">Hadir</Badge>;
     if (status === 'Telat') return <Badge bg="warning">Telat</Badge>;
@@ -138,13 +140,30 @@ const handleSave = async () => {
   }
 
   return (
-    <div>
-      <Button className="mb-3" onClick={goBack}>
+    <div style={{ background: '#fff0f5', minHeight: '100vh', padding: 20 }}>
+
+      {/* BACK BUTTON */}
+      <Button
+        className="mb-3"
+        onClick={goBack}
+        style={{
+          background: '#ffc0cb',
+          border: 'none',
+          color: '#333',
+          borderRadius: '10px'
+        }}
+      >
         ← Back
       </Button>
 
       {/* 🔥 PROFILE CARD */}
-      <Card className="p-4 shadow border-0 rounded-4 mb-4">
+      <Card
+        className="p-4 shadow-sm mb-4"
+        style={{
+          borderRadius: 16,
+          border: 'none'
+        }}
+      >
         <Row>
           {/* LEFT */}
           <Col md={4} className="text-center border-end">
@@ -156,7 +175,7 @@ const handleSave = async () => {
                 height: 140,
                 borderRadius: '50%',
                 objectFit: 'cover',
-                border: '4px solid #ff6b9d'
+                border: '4px solid #ff3d7f'
               }}
             />
 
@@ -169,13 +188,22 @@ const handleSave = async () => {
             )}
 
             <h5 className="mt-3 fw-bold">{display(form.nama)}</h5>
-            <Badge bg="primary">{display(form.jabatan)}</Badge>
-            <div className="text-muted small"></div>
+
+            <div className="d-flex justify-content-center gap-2 mt-2">
+              <Badge bg="danger">{display(form.jabatan)}</Badge>
+              <Badge bg="secondary">{display(form.departemen)}</Badge>
+            </div>
+
             <Button
-              variant={isEdit ? 'secondary' : 'warning'}
               size="sm"
               className="mt-3"
               onClick={() => setIsEdit(!isEdit)}
+              style={{
+                background: isEdit
+                  ? '#ccc'
+                  : 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+                border: 'none'
+              }}
             >
               {isEdit ? 'Cancel' : 'Edit'}
             </Button>
@@ -183,7 +211,9 @@ const handleSave = async () => {
 
           {/* RIGHT */}
           <Col md={8}>
-            <h5 className="mb-3 fw-semibold">Informasi User</h5>
+            <h5 className="mb-3 fw-semibold" style={{ color: '#ff3d7f' }}>
+              Informasi User
+            </h5>
 
             {!isEdit ? (
               <Row>
@@ -193,10 +223,12 @@ const handleSave = async () => {
                   <p><b>Nomor Telp</b><br />{display(form.nomor_telepon)}</p>
                   <p>
                     <b>Tanggal Lahir</b><br />
-                    {form.tanggal_lahir ? form.tanggal_lahir.split('T')[0] : '-'}
+                    {form.tanggal_lahir
+                      ? form.tanggal_lahir.split('T')[0]
+                      : '-'}
                   </p>
-
                 </Col>
+
                 <Col md={6}>
                   <p><b>Alamat</b><br />{display(form.alamat)}</p>
                   <p><b>Departemen</b><br />{display(form.departemen)}</p>
@@ -205,7 +237,10 @@ const handleSave = async () => {
               </Row>
             ) : (
               <Form>
-                {saveError && <Alert variant="danger" className="mb-3">{saveError}</Alert>}
+                {saveError && (
+                  <Alert variant="danger">{saveError}</Alert>
+                )}
+
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
@@ -252,10 +287,24 @@ const handleSave = async () => {
                 </Row>
 
                 <div className="d-flex gap-2">
-                  <Button variant="success" onClick={handleSave} disabled={saveLoading}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saveLoading}
+                    style={{
+                      background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+                      border: 'none'
+                    }}
+                  >
                     {saveLoading ? 'Saving...' : 'Save Changes'}
                   </Button>
-                  <Button variant="secondary" onClick={() => { setIsEdit(false); setSaveError(''); }}>
+
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setIsEdit(false);
+                      setSaveError('');
+                    }}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -266,11 +315,17 @@ const handleSave = async () => {
       </Card>
 
       {/* 🔥 ABSENSI */}
-      <Card className="p-4 shadow border-0 rounded-4">
-        <h5 className="fw-semibold">Log Absensi</h5>
+      <Card
+        className="p-4 shadow-sm"
+        style={{
+          borderRadius: 16,
+          border: 'none'
+        }}
+      >
+        <h5 style={{ color: '#ff3d7f' }}>Log Absensi</h5>
 
-        <Table hover responsive className="mt-3 align-middle">
-          <thead className="table-dark">
+        <Table hover className="mt-3 align-middle">
+          <thead style={{ background: '#ffe4ec' }}>
             <tr>
               <th>Tanggal</th>
               <th>Status</th>

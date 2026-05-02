@@ -17,7 +17,7 @@ export default function ProtectedRoute({ children }: any) {
 
   // Redirect ke login jika tidak authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;

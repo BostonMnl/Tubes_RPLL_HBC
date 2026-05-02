@@ -1,4 +1,5 @@
-import { Card, Button, Row, Col, Badge } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
+import { Card, Button, Row, Col, Badge, Spinner } from 'react-bootstrap';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -9,13 +10,15 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import { wageServices } from '../../services/apiServices';
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
 type Employee = {
-  id: number;
+  id: string;
   name: string;
   role: string;
+  jabatan: string;
 };
 
 type WageDetailProps = {
@@ -25,10 +28,49 @@ type WageDetailProps = {
 
 export default function WageDetail({ employee, goBack }: WageDetailProps) {
 
-  const salaryData = [500, 700, 650, 800, 900];
+  const [salaryData, setSalaryData] = useState<number[]>([]);
+  const [labels, setLabels] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGaji = async () => {
+      try {
+        const res = await wageServices.getGajiByUserId(employee.id);
+        const gajiList = res.data.gaji;
+
+        const sorted = [...gajiList].sort(
+          (a, b) =>
+            new Date(a.tanggal_berlaku).getTime() -
+            new Date(b.tanggal_berlaku).getTime()
+        );
+
+        setSalaryData(sorted.map((item: any) => item.nominal));
+
+        setLabels(
+          sorted.map((item: any) =>
+            new Date(item.tanggal_berlaku).toLocaleDateString('id-ID', {
+              month: 'short',
+              year: 'numeric'
+            })
+          )
+        );
+
+      } catch (err) {
+        console.error("ERROR GAJI:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGaji();
+  }, [employee.id]);
+
+  const total = salaryData.reduce((a, b) => a + b, 0);
+  const avg = salaryData.length ? Math.round(total / salaryData.length) : 0;
+  const max = salaryData.length ? Math.max(...salaryData) : 0;
 
   const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+    labels,
     datasets: [
       {
         label: 'Salary',
@@ -40,60 +82,101 @@ export default function WageDetail({ employee, goBack }: WageDetailProps) {
     ]
   };
 
-  const total = salaryData.reduce((a, b) => a + b, 0);
-  const avg = Math.round(total / salaryData.length);
-  const max = Math.max(...salaryData);
-
   return (
-    <div>
-      <Button variant="secondary" className="mb-3" onClick={goBack}>
+    <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
+      
+      {/* BACK BUTTON */}
+      <Button
+        onClick={goBack}
+        style={{
+          background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+          border: 'none',
+          borderRadius: '12px'
+        }}
+        className="mb-3 px-4 py-2 shadow-sm"
+      >
         ← Back
       </Button>
 
-      {/* Header */}
-      <Card className="p-4 shadow-sm mb-4">
-        <h4 className="mb-1">{employee.name}</h4>
-        <Badge bg="primary">{employee.role}</Badge>
-      </Card>
-
-      {/* Stats */}
-      <Row className="g-3 mb-4">
-        <Col md={4}>
-          <Card className="p-3 shadow-sm text-center">
-            <small>Total Salary</small>
-            <h4 className="text-primary">${total}</h4>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="p-3 shadow-sm text-center">
-            <small>Average</small>
-            <h4>${avg}</h4>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="p-3 shadow-sm text-center">
-            <small>Highest</small>
-            <h4>${max}</h4>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Chart */}
-      <Card className="p-4 shadow-sm">
-        <h5 className="mb-3">Salary Trend</h5>
-        <div style={{ height: '300px' }}>
-          <Line
-            data={data}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: true }
-              }
-            }}
-          />
+      {/* HEADER */}
+      <Card
+        className="p-4 mb-4 shadow-sm"
+        style={{
+          borderRadius: '16px',
+          border: 'none',
+          background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
+          color: 'white'
+        }}
+      >
+        <h3 className="mb-1">{employee.name}</h3>
+        <div>
+          <Badge bg="light" text="dark" className="me-2">
+            {employee.role}
+          </Badge>
+          <Badge bg="dark">
+            {employee.jabatan}
+          </Badge>
         </div>
       </Card>
+
+      {loading ? (
+        <div className="text-center mt-5">
+          <Spinner animation="border" variant="danger" />
+        </div>
+      ) : (
+        <>
+          {/* STATS */}
+          <Row className="mb-4 g-3">
+            {[ 
+              { label: 'Total', value: total },
+              { label: 'Average', value: avg },
+              { label: 'Max', value: max }
+            ].map((item, i) => (
+              <Col md={4} key={i}>
+                <Card
+                  className="p-3 text-center shadow-sm"
+                  style={{
+                    borderRadius: '16px',
+                    border: 'none',
+                    background: 'white'
+                  }}
+                >
+                  <small style={{ color: '#888' }}>{item.label}</small>
+                  <h4 style={{ color: '#ff3d7f' }}>
+                    Rp {item.value.toLocaleString('id-ID')}
+                  </h4>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+
+          {/* CHART */}
+          <Card
+            className="p-4 shadow-sm"
+            style={{
+              borderRadius: '16px',
+              border: 'none'
+            }}
+          >
+            <h5 className="mb-3" style={{ color: '#ff3d7f' }}>
+              Salary Trend
+            </h5>
+
+            <div style={{ height: '320px' }}>
+              <Line
+                data={data}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: true }
+                  }
+                }}
+              />
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
