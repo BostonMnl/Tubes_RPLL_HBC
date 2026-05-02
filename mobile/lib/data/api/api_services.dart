@@ -6,7 +6,7 @@ import 'package:mobile/data/model/cuti.dart';
 import 'package:mobile/data/model/user.dart';
 
 class ApiServices {
-  static const String _baseUrl = "http://192.168.1.12:3000/api";
+  static const String _baseUrl = "http://192.168.43.67:3000/api";
 
   static Future<String> forgotPassword(String email) async {
     final url = Uri.parse("$_baseUrl/forgot-password");
@@ -20,6 +20,25 @@ class ApiServices {
     final res = _handleResponse(response);
 
     return res['message'];
+  }
+
+  static Future<String> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse("$_baseUrl/reset-password"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"token": token, "newPassword": newPassword}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data["message"];
+    } else {
+      throw Exception(data["message"] ?? "Reset password gagal");
+    }
   }
 
   static Future<User> getMyProfile(String token) async {
@@ -147,7 +166,7 @@ class ApiServices {
     }
   }
 
-   static Future<List<Gaji>> getMyGaji(String token) async {
+  static Future<List<Gaji>> getMyGaji(String token) async {
     final response = await http.get(
       Uri.parse("$_baseUrl/gaji/me"),
       headers: {
@@ -168,9 +187,6 @@ class ApiServices {
       throw Exception(data['message']);
     }
   }
-
-
-
 
   static Map<String, dynamic> _handleResponse(http.Response response) {
     final data = jsonDecode(response.body);
