@@ -17,6 +17,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import ManagementTree from './components/ManagementTree';
 import ManagerDashboard from './components/ManagerDashboard';
 import RoleRoute from './routes/RoleRoute';
+import UserPageManager from './components/manager/UserPageManager';
 
 function DashboardLayout() {
   return (
@@ -70,6 +71,8 @@ export default function App() {
         }
       >
         <Route index element={<ManagerDashboard />} />
+        <Route path="user" element={<UserPageManager />} />
+
         <Route path="calendar" element={<CalendarView />} />
         <Route path="reimburse" element={<ReimbursePage />} />
         <Route path="wage" element={<WageSettings />} />

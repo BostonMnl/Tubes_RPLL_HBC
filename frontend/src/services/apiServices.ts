@@ -90,6 +90,13 @@ createUser: async (userData: Partial<User> | FormData) => {
     });
     return handleResponse(response);
   },
+
+  resetPassword: async (userId: string, body: { newPassword: string }) => {
+  return fetchWithToken(`${API_BASE_URL}/admin/users/reset/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  }).then(handleResponse);
+},
 };
 
 // // ============ ATTENDANCE SERVICES ============
@@ -170,22 +177,22 @@ export const leaveServices = {
   // },
 
   // Request leave
-  // requestLeave: async (leaveData: any) => {
-  //   try {
-  //     const response = await fetch(`${API_BASE_URL}/leaves`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify(leaveData),
-  //     });
-  //     if (!response.ok) throw new Error('Failed to request leave');
-  //     return await response.json();
-  //   } catch (error) {
-  //     console.error('Error requesting leave:', error);
-  //     throw error;
-  //   }
-  // },
+  requestLeave: async (leaveData: any) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/cuti`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(leaveData),
+      });
+      if (!response.ok) throw new Error('Failed to request leave');
+      return await response.json();
+    } catch (error) {
+      console.error('Error requesting leave:', error);
+      throw error;
+    }
+  },
 
   // Update leave status
   updateLeaveStatus: async (leaveId: string, status: string) => {

@@ -37,7 +37,6 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      // jangan navigate di sini (biar useEffect yang handle)
     } catch (err: any) {
       setError(err.message || 'Login gagal, silahkan cek email dan password');
     } finally {
@@ -46,43 +45,75 @@ export default function LoginPage() {
   };
 
   console.log("USER LOGIN:", user);
+
   return (
-    <Container fluid className="vh-100 d-flex justify-content-center align-items-center bg-light">
-      <Card className="shadow-lg border-0" style={{ width: '100%', maxWidth: '400px' }}>
+    <Container
+      fluid
+      className="vh-100 d-flex justify-content-center align-items-center"
+      style={{
+        background: 'linear-gradient(135deg, #ffe4ec, #ffd1dc)'
+      }}
+    >
+      <Card
+        className="shadow-lg border-0"
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          borderRadius: '20px'
+        }}
+      >
         <Card.Body className="p-4 p-md-5">
-          <h3 className="text-center fw-bold mb-4">Login</h3>
+          <h3
+            className="text-center fw-bold mb-4"
+            style={{ color: '#d63384' }}
+          >
+            Login
+          </h3>
 
           {error && <Alert variant="danger">{error}</Alert>}
 
           <Form onSubmit={handleLogin}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-semibold">Email</Form.Label>
+              <Form.Label className="fw-semibold">
+                Email
+              </Form.Label>
               <Form.Control
                 type="email"
                 placeholder="Masukkan email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                style={{
+                  borderRadius: '10px'
+                }}
               />
             </Form.Group>
 
             <Form.Group className="mb-4">
-              <Form.Label className="fw-semibold">Password</Form.Label>
+              <Form.Label className="fw-semibold">
+                Password
+              </Form.Label>
               <Form.Control
                 type="password"
                 placeholder="Masukkan password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
+                style={{
+                  borderRadius: '10px'
+                }}
               />
             </Form.Group>
 
             <Button
-              variant="primary"
               size="lg"
-              className="w-100"
+              className="w-100 border-0"
               type="submit"
               disabled={loading}
+              style={{
+                backgroundColor: '#d63384',
+                borderRadius: '10px'
+              }}
             >
               {loading ? 'Loading...' : 'Login'}
             </Button>
