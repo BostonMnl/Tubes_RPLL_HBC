@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Cuti } from "models/cuti";
 import { ApiResponse } from '../middlewares/response.middleware';
 import { Op } from "sequelize/lib/operators";
+import { User } from "models/user";
 
 type AuthenticatedRequest = Request & {
     auth?: {
@@ -10,11 +11,11 @@ type AuthenticatedRequest = Request & {
     };
 };
 
-const getParamId = (req: Request): string => {
-    const id = req.params.id;
+const getParamId = (req: Request, fieldName: string = 'id'): string => {
+    const id = req.params[fieldName];
 
-    if (typeof id !== 'string' || !id.trim()) {
-        throw { code: 400, message: 'User id is required' };
+    if (!id || typeof id !== 'string' || !id.trim()) {
+        throw { code: 400, message: `${fieldName} is required and must be a valid string` };
     }
 
     return id;
@@ -176,7 +177,6 @@ export const getAllCutiRequests = async (
         throw { code: 401, message: 'Unauthorized' };
     }
     
-    // Filter by status if provided (default: Pending)
     const { status } = req.query;
     const whereClause: any = {};
     
@@ -188,6 +188,39 @@ export const getAllCutiRequests = async (
 
     const cuti = await Cuti.findAll({
         where: whereClause,
+        include: [
+            {
+                model: User,
+                as: 'user',
+                attributes: ['nama'],
+            }
+        ],
+        order: [['createdAt', 'DESC']],
+    });
+
+    return {
+        code: 200,
+        message: 'Cuti requests fetched successfully',
+        data: { cuti },
+    };
+}
+
+export const getAllCuti = async (
+    req: AuthenticatedRequest,
+    _res: Response
+): Promise<ApiResponse<{ cuti: Cuti[] }>> => {
+    if (!req.auth?.id) {
+        throw { code: 401, message: 'Unauthorized' };
+    }
+    
+    const cuti = await Cuti.findAll({
+        include: [
+            {
+                model: User,
+                as: 'user',
+                attributes: ['nama'],
+            }
+        ],
         order: [['createdAt', 'DESC']],
     });
 

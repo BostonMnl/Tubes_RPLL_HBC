@@ -9,6 +9,8 @@ import managerialRoutes from './routes/managerial.routes';
 import reimburseRoutes from './routes/reimburse.routes';
 import cutiRoutes from './routes/cuti.routes';
 import gajiRoutes from './routes/gaji.routes';
+import insentifRoutes from './routes/insentif.routes';
+import penaltiRoutes from './routes/pinalti.routes';
 import { apiErrorHandler } from './middlewares/response.middleware';
 const app = express();
 
@@ -26,6 +28,8 @@ app.use('/api/managerial', managerialRoutes);
 app.use('/api/reimburse', reimburseRoutes);
 app.use('/api/cuti', cutiRoutes);
 app.use('/api/gaji', gajiRoutes);
+app.use('/api/insentif', insentifRoutes);
+app.use('/api/penalti', penaltiRoutes);
 
 // Error handler (must be after routes)
 app.use(apiErrorHandler);

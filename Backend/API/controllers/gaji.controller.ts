@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { Gaji } from '../../models/gaji';
 import { ApiResponse } from '../middlewares/response.middleware';
-import { IsUUID } from 'sequelize-typescript';
 
 type AuthenticatedRequest = Request & {
     auth?: {
@@ -10,87 +9,7 @@ type AuthenticatedRequest = Request & {
     };
 };
 
-const getParamId = (req: Request): string => {
-    const id = req.params.id;
-
-    if (typeof id !== 'string' || !id.trim()) {
-        throw { code: 400, message: 'User id is required' };
-    }
-
-    return id;
-};
-
-export const getMyGaji = async (
-    req: AuthenticatedRequest,
-    _res: Response
-): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
-    if (!req.auth?.id) {
-        throw { code: 401, message: 'Unauthorized' };
-    }
-    const gaji = await Gaji.findAll({
-        where: { user_id: req.auth.id },
-        order: [['createdAt', 'DESC']],
-    });
-
-    for (const g of gaji) {
-        if (g.deletedAt) {
-            throw { code: 404, message: 'Gaji record not found' };
-        }
-    }
-
-    return {
-        code: 200,
-        message: 'Gaji fetched successfully',
-        data: { gaji },
-    }; 
-};
-
-export const getGajiByUserId = async (
-    req: AuthenticatedRequest,
-    _res: Response
-): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
-    if (!req.auth?.id) {
-        throw { code: 401, message: 'Unauthorized' };
-    }
-
-    const userId = req.params.userId;
-
-    if (typeof userId !== 'string' || !userId.trim()) {
-        throw { code: 400, message: 'User id is required' };
-    }
-
-    const gaji = await Gaji.findAll({
-        where: { user_id: userId },
-        order: [['createdAt', 'DESC']],
-    });
-
-    return {
-        code: 200,
-        message: 'Gaji fetched successfully',
-        data: { gaji },
-    };
-};
-
-export const getAllGaji = async (
-    req: AuthenticatedRequest,
-    _res: Response
-): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
-    if (!req.auth?.id) {
-        throw { code: 401, message: 'Unauthorized' };
-    }
-
-    const gaji = await Gaji.findAll({
-        order: [['createdAt', 'DESC']],
-    });
-
-    return {
-        code: 200,
-        message: 'All gaji fetched successfully',
-        data: { gaji },
-    };
-};
-
-export const updateGajiTetap = async (
+export const createGaji = async (
     req: AuthenticatedRequest,
     _res: Response
 ): Promise<ApiResponse<{ gaji: Gaji }>> => {
@@ -98,11 +17,10 @@ export const updateGajiTetap = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    const userId = req.params.userId;
-    const { nominal, tanggal_berlaku } = req.body;
+    const { user_id, nominal, tanggal_berlaku } = req.body;
 
-    if (typeof userId !== 'string' || !userId.trim()) {
-        throw { code: 400, message: 'User id is required' };
+    if (typeof user_id !== 'string' || !user_id.trim()) {
+        throw { code: 400, message: 'Valid user_id is required' };
     }
 
     if (typeof nominal !== 'number' || nominal <= 0) {
@@ -114,52 +32,19 @@ export const updateGajiTetap = async (
     }
 
     const gaji = await Gaji.create({
-        user_id: userId,
+        user_id,
         nominal,
         tanggal_berlaku,
     });
 
     return {
-        code: 201,
-        message: 'Gaji tetap updated successfully',
         data: { gaji },
+        code: 201,
+        message: 'Gaji created successfully',
     };
 };
 
-export const calculateMonthlyPayroll = async (
-    req: AuthenticatedRequest,
-    _res: Response
-): Promise<ApiResponse<{ message: string }>> => {
-    if (!req.auth?.id) {
-        throw { code: 401, message: 'Unauthorized' };
-    }
-
-    const { month, year } = req.body;
-
-    if (typeof month !== 'number' || month < 1 || month > 12) {
-        throw { code: 400, message: 'Valid month (1-12) is required' };
-    }
-
-    if (typeof year !== 'number' || year < 2020) {
-        throw { code: 400, message: 'Valid year is required' };
-    }
-
-    // TODO: Implement payroll calculation logic
-    // This should:
-    // 1. Get all users with gaji_tetap for the period
-    // 2. Sum up insentif approved for the month
-    // 3. Sum up penalti for the month
-    // 4. Calculate: gaji_tetap + insentif - penalti
-    // 5. Store in payslip or gaji record
-
-    return {
-        code: 200,
-        message: `Monthly payroll for ${month}/${year} calculated successfully`,
-        data: { message: 'Payroll calculation initiated' },
-    };
-};
-
-export const getPayslip = async (
+export const getMyGaji = async (
     req: AuthenticatedRequest,
     _res: Response
 ): Promise<ApiResponse<{ gaji: Gaji }>> => {
@@ -167,92 +52,120 @@ export const getPayslip = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    const { month, year } = req.query;
-
-    if (!month || !year) {
-        throw { code: 400, message: 'Month and year parameters are required' };
-    }
-
-    // TODO: Implement payslip retrieval logic
-    // This should fetch the calculated payslip for the user for that month
-
     const gaji = await Gaji.findOne({
-        where: { user_id: req.auth.id },
-        order: [['createdAt', 'DESC']],
+        where: { user_id: req.auth.id }
     });
 
     if (!gaji) {
-        throw { code: 404, message: 'Payslip not found' };
+        throw { code: 404, message: 'Gaji not found' };
     }
 
     return {
-        code: 200,
-        message: 'Payslip fetched successfully',
         data: { gaji },
+        code: 200,
+        message: 'Gaji retrieved successfully',
     };
 };
 
-export const getPayslipByUser = async (
+export const getGajiByUserId = async (
     req: AuthenticatedRequest,
     _res: Response
-): Promise<ApiResponse<{ gaji: Gaji | null }>> => {
+): Promise<ApiResponse<{ gaji: Gaji }>> => {
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    const userId = req.params.userId;
-    const { month, year } = req.query;
-
-    if (typeof userId !== 'string' || !userId.trim()) {
-        throw { code: 400, message: 'User id is required' };
-    }
-
-    if (!month || !year) {
-        throw { code: 400, message: 'Month and year parameters are required' };
-    }
-
-    // TODO: Implement payslip retrieval for admin/manager
-    // This should fetch the calculated payslip for the specified user for that month
+    const { userId } = req.params;
 
     const gaji = await Gaji.findOne({
-        where: { user_id: userId },
-        order: [['createdAt', 'DESC']],
+        where: { user_id: userId }
     });
 
+    if (!gaji) {
+        throw { code: 404, message: 'Gaji not found' };
+    }
+
     return {
+        data: { gaji },
         code: 200,
-        message: 'Payslip fetched successfully',
-        data: { gaji: gaji || null },
+        message: 'Gaji retrieved successfully',
     };
 };
 
-export const getPayrollSummary = async (
+export const getAllGaji = async (
     req: AuthenticatedRequest,
     _res: Response
-): Promise<ApiResponse<{ summary: any }>> => {
+): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
-
-    const { month, year } = req.query;
-
-    if (!month || !year) {
-        throw { code: 400, message: 'Month and year parameters are required' };
-    }
-
-    // TODO: Implement payroll summary logic
-    // This should show:
-    // - Total employees processed
-    // - Total gaji_tetap
-    // - Total insentif
-    // - Total penalti
-    // - Total payroll
+    const gaji = await Gaji.findAll();
 
     return {
+        data: { gaji },
         code: 200,
-        message: `Payroll summary for ${month}/${year} retrieved successfully`,
-        data: { summary: {} },
+        message: 'Gaji retrieved successfully',
     };
 };
 
+export const updateGajiTetap = async (
+    req: AuthenticatedRequest,
+    _res: Response
+): Promise<ApiResponse<{ gaji: Gaji }>> => {
+    if (!req.auth?.id) {
+        throw { code: 401, message: 'Unauthorized' };
+    }
+    const { userId } = req.params;
+    const { nominal, tanggal_berlaku } = req.body;
 
+    if (typeof nominal !== 'number' || nominal <= 0) {
+        throw { code: 400, message: 'Nominal must be a positive number' };
+    }
+
+    if (!tanggal_berlaku || isNaN(Date.parse(tanggal_berlaku))) {
+        throw { code: 400, message: 'Valid tanggal_berlaku is required' };
+    }
+
+    const gaji = await Gaji.findOne({
+        where: { user_id: userId }
+    });
+
+    if (!gaji) {
+        throw { code: 404, message: 'Gaji not found' };
+    }
+
+    gaji.nominal = nominal;
+    gaji.tanggal_berlaku = tanggal_berlaku;
+    await gaji.save();
+
+    return {
+        data: { gaji },
+        code: 200,
+        message: 'Gaji updated successfully',
+    };
+};
+
+// const deleteGaji = async (
+//     req: AuthenticatedRequest,
+//     _res: Response
+// ): Promise<ApiResponse<null>> => {
+//     if (!req.auth?.id) {
+//         throw { code: 401, message: 'Unauthorized' };
+//     }
+//     const { userId } = req.params;
+
+//     const gaji = await Gaji.findOne({
+//         where: { user_id: userId }
+//     });
+
+//     if (!gaji) {
+//         throw { code: 404, message: 'Gaji not found' };
+//     }
+//     await gaji.destroy();
+
+//     return {
+//         data: null,
+//         code: 200,
+//         message: 'Gaji deleted successfully',
+//     };
+// };

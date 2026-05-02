@@ -1,6 +1,6 @@
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { User } from './user';
-import { Gaji } from './gaji';
+import { Payroll } from './payroll';
 
 @Table({
     tableName: 'insentif',
@@ -23,10 +23,23 @@ export class Insentif extends Model {
     declare nominal: number;
 
     @Column({
+        type: DataType.STRING,
+        allowNull: false
+    })
+    declare keterangan: string;
+
+    @Column({
         type: DataType.DATEONLY,
         allowNull: false
     })
     declare tanggal: Date;
+
+    @ForeignKey(() => Payroll)
+    @Column({
+        type: DataType.UUID,
+        allowNull: true
+    })
+    declare payroll_id: string;
 
     @ForeignKey(() => User)
     @Column({
@@ -35,16 +48,11 @@ export class Insentif extends Model {
     })
     declare user_id: string;
 
-    @ForeignKey(() => Gaji)
-    @Column({
-        type: DataType.UUID,
-        allowNull: true
-    })
-    declare gaji_id: string | null;
+    @BelongsTo(() => Payroll)
+    payroll!: Payroll;
 
     @BelongsTo(() => User)
     user!: User;
+    
 
-    @BelongsTo(() => Gaji)
-    gaji!: Gaji;
 }

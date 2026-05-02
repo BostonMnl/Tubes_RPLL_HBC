@@ -34,25 +34,6 @@ export class Gaji extends Model {
     })
     declare tanggal_berlaku: Date;
 
-    // @Column({
-    //     type: DataType.DATE,
-    //     allowNull: false,
-    //     defaultValue: DataType.NOW
-    // })
-    // declare createdAt: Date | null;
-
-    // @Column({
-    //     type: DataType.DATE,
-    //     allowNull: false
-    // })
-    // declare updatedAt: Date | null;
-
-    // @Column({
-    //     type: DataType.DATE,
-    //     allowNull: false
-    // })
-    // declare deletedAt: Date | null;
-
     @BelongsTo(() => User)
     user!: User;
 }

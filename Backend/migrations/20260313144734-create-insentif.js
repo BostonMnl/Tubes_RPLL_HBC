@@ -15,9 +15,23 @@ module.exports = {
         type: Sequelize.FLOAT,
         allowNull: false,
       },
-      tanggal: {
-        type: Sequelize.DATEONLY,
+      keterangan: {
+        type: Sequelize.STRING,
         allowNull: false
+      },
+      tanggal: {
+        type: Sequelize.DATE,
+        allowNull: false
+      },
+      payroll_id: {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: {
+          model: 'payroll',
+          key: 'payroll_id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
       user_id: {
         type: Sequelize.UUID,
@@ -25,16 +39,6 @@ module.exports = {
         references: {
           model: 'user',
           key: 'user_id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-      },
-      gaji_id: {
-        type: Sequelize.UUID,
-        allowNull: true,
-        references: {
-          model: 'gaji',
-          key: 'gaji_id'
         },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'

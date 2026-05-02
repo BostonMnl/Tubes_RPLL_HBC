@@ -1,6 +1,6 @@
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { User } from './user';
-import { Gaji } from './gaji';
+import { Payroll } from './payroll';
 
 @Table({
     tableName: 'penalti',
@@ -47,16 +47,14 @@ export class Penalti extends Model {
     })
     declare user_id: string;
 
-    @ForeignKey(() => Gaji)
+    @ForeignKey(() => Payroll)
     @Column({
         type: DataType.UUID,
         allowNull: true
     })
-    declare gaji_id: string | null;
+    declare payroll_id: string | null;
 
     @BelongsTo(() => User)
     user!: User;
 
-    @BelongsTo(() => Gaji)
-    gaji!: Gaji;
 }

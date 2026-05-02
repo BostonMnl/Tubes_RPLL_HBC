@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { ApiResponse } from '../middlewares/response.middleware';
 import { Reimburse } from 'models/reimburse';
+import { Op } from 'sequelize';
+import console from 'console';
 
 type AuthenticatedRequest = Request & {
     auth?: {
@@ -9,11 +11,11 @@ type AuthenticatedRequest = Request & {
     };
 };
 
-const getParamId = (req: Request): string => {
-    const id = req.params.id;
+const getParamId = (req: Request, fieldName: string = 'id'): string => {
+    const id = req.params[fieldName];
 
-    if (typeof id !== 'string' || !id.trim()) {
-        throw { code: 400, message: 'User id is required' };
+    if (!id || typeof id !== 'string' || !id.trim()) {
+        throw { code: 400, message: `${fieldName} is required and must be a valid string` };
     }
 
     return id;
@@ -26,14 +28,14 @@ export const createMyReimburseRequest = async (
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
-    const { nominal, tanggal_pengajuan } = req.body;
+    const { nominal, tanggal } = req.body;
 
     if (typeof nominal !== 'number' || nominal <= 0) {
         throw { code: 400, message: 'Nominal must be a positive number' };
     }
 
-    if (!tanggal_pengajuan || isNaN(Date.parse(tanggal_pengajuan))) {
-        throw { code: 400, message: 'Valid tanggal_pengajuan is required' };
+    if (!tanggal || isNaN(Date.parse(tanggal))) {
+        throw { code: 400, message: 'Valid tanggal is required' };
     }
 
     return {
@@ -41,7 +43,7 @@ export const createMyReimburseRequest = async (
             reimburse: await Reimburse.create({
                 user_id: req.auth.id,
                 nominal,
-                tanggal_pengajuan,
+                tanggal,
             }),
         },
         code: 201,
@@ -56,14 +58,14 @@ export const createReimburseRequestForUser = async (
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
-    const { user_id, nominal, tanggal_pengajuan } = req.body;
+    const { user_id, nominal, tanggal } = req.body;
 
     if (typeof nominal !== 'number' || nominal <= 0) {
         throw { code: 400, message: 'Nominal must be a positive number' };
     }
 
-    if (!tanggal_pengajuan || isNaN(Date.parse(tanggal_pengajuan))) {
-        throw { code: 400, message: 'Valid tanggal_pengajuan is required' };
+    if (!tanggal || isNaN(Date.parse(tanggal))) {
+        throw { code: 400, message: 'Valid tanggal is required' };
     }
 
     return {
@@ -71,7 +73,7 @@ export const createReimburseRequestForUser = async (
             reimburse: await Reimburse.create({
                 user_id,
                 nominal,
-                tanggal_pengajuan,
+                tanggal,
             }),
         },
         code: 201,
@@ -145,7 +147,7 @@ export const getAllReimburseRequests = async (
     // Filter by status if provided (default: Pending)
     const { status } = req.query;
     const whereClause: any = {};
-    
+
     if (status && ['Pending', 'Approved', 'Rejected'].includes(String(status))) {
         whereClause.status = status;
     } else {
@@ -243,7 +245,7 @@ export const deleteReimburseRequest = async (
     const id = getParamId(req);
 
     const reimburse = await Reimburse.findOne({
-        where: { reimburse_id: id},
+        where: { reimburse_id: id },
     });
 
     if (!reimburse || reimburse.deletedAt) {
@@ -276,9 +278,9 @@ export const deleteMyReimburseRequest = async (
     }
 
     const id = getParamId(req);
-    
+
     const reimburse = await Reimburse.findOne({
-        where: { reimburse_id: id},
+        where: { reimburse_id: id },
     });
 
     if (!reimburse || reimburse.deletedAt) {

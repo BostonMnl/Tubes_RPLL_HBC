@@ -8,6 +8,7 @@ import {
   approveDeclineCutiRequest,
   getRemainingCutiQuota,
   deleteMyCutiRequest,
+  getAllCuti,
 } from '../controllers/cuti.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { apiResponse } from '../middlewares/response.middleware';
@@ -20,6 +21,7 @@ router.get('/me', authMiddleware(), apiResponse(getMyCuti));
 router.get('/quota', authMiddleware(), apiResponse(getRemainingCutiQuota));
 router.get('/:id', authMiddleware(['manager', 'admin']), apiResponse(getCutiByUserId));
 router.get('/', authMiddleware(['manager', 'admin']), apiResponse(getAllCutiRequests));
+router.get('/all', authMiddleware(['manager', 'admin']), apiResponse(getAllCuti));
 router.put('/:id/approval', authMiddleware(['manager', 'admin']), apiResponse(approveDeclineCutiRequest));
 router.delete('/:id', authMiddleware(), apiResponse(deleteMyCutiRequest));
 
