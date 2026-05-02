@@ -51,6 +51,7 @@ export const createUser = async (
             jabatan: string;
             role: string;
             departemen: string;
+            manager_id: string;
         };
     }>
 > => {
@@ -80,8 +81,10 @@ export const createUser = async (
         departemen?: string;
         gambar?: string;
         password?: string;
+        manager_email?: string;
     };
 
+    let manager_id: string;
     const file = (req as Request & { file?: Express.Multer.File }).file;
     const gambarFromFile = file ? `/uploads/${file.filename}` : undefined;
 
@@ -136,6 +139,13 @@ export const createUser = async (
         throw { code: 409, message: 'Email already registered' };
     }
 
+    const existingManager = await User.findOne({ where: { email: req.body.manager_email } });
+    if (!existingManager || existingManager.deletedAt) {
+        throw { code: 400, message: 'Manager with the provided email does not exist' };
+    } else {
+        manager_id = existingManager.user_id;
+    }
+
 
     const createdUser = await User.create({
         nama : nama,
@@ -167,6 +177,7 @@ export const createUser = async (
                 jabatan: createdUser.jabatan,
                 role: createdUser.role,
                 departemen: createdUser.departemen,
+                manager_id: manager_id,
             },
         },
     };
@@ -216,7 +227,7 @@ export const getUsersProfile = async (
     }
 
     const user = await User.findAll({
-        attributes: ['user_id', 'nama', 'email','jabatan', 'role', 'departemen'],
+        attributes: ['user_id', 'nama', 'email','jabatan', 'role'],
     });
 
 
@@ -344,7 +355,6 @@ export const updateProfileById = async (
         }
     }
 
-
     user.nama = nama;
     user.email = email;
     user.alamat = alamat;
@@ -379,6 +389,29 @@ export const updateProfileById = async (
                 manager_id: user.manager_id,
             },
         },
+    };
+};
+
+export const deleteUser = async (
+    req: AuthenticatedRequest,
+    _res: Response
+): Promise<ApiResponse> => {
+    if (!req.auth?.id) {
+        throw { code: 401, message: 'Unauthorized' };
+    }
+
+    const id = getParamId(req);
+
+    const user = await User.findByPk(id);
+    if (!user || user.deletedAt) {
+        throw { code: 404, message: 'User not found' };
+    }
+
+    await user.destroy();
+
+    return {
+        code: 200,
+        message: 'User deleted successfully',
     };
 };
 

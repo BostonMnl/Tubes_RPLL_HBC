@@ -29,82 +29,6 @@ const getParamId = (req: Request): string => {
 	return id;
 };
 
-export const assignManager = async (
-	req: AuthenticatedRequest,
-	_res: Response
-): Promise<ApiResponse<{ user: { user_id: string; manager_id: string } }>> => {
-	if (!req.auth?.id) {
-		throw { code: 401, message: 'Unauthorized' };
-	}
-
-	const id = getParamId(req);
-	const role = req.auth?.role;
-	const { manager_id } = req.body as { manager_id?: string };
-	const target = await User.findByPk(id);
-
-	if (!target || target.deletedAt) {
-		throw { code: 404, message: 'User not found' };
-	}
-
-	if (target.manager_id !== null){
-		throw { code: 400, message: 'User already has a manager assigned' };
-	}
-
-	if (!manager_id) {
-		throw { code: 400, message: 'manager_id is required' };
-	}
-
-	const manager = await User.findByPk(manager_id);
-	if (!manager || manager.deletedAt) {
-		throw { code: 404, message: 'Manager not found' };
-	}
-
-	const actorJabatan = req.auth?.jabatan ?? '';
-	const { actorIdx, targetIdx, managerIdx } = getJabatanIndices(
-		actorJabatan,
-		target.jabatan,
-		manager.jabatan
-	);
-
-	if (role !== 'admin') {
-		if (actorIdx === 1) {
-			if (!(targetIdx < managerIdx && managerIdx === 1)) {
-				throw { code: 403, message: 'Forbidden: insufficient wewenang' };
-			}
-		} else if (actorIdx === 2) {
-			const staffToManager = targetIdx < managerIdx && managerIdx === 1;
-			const managerToSupervisor = targetIdx === 1 && managerIdx === targetIdx;
-			if (!staffToManager && !managerToSupervisor) {
-				throw { code: 403, message: 'Forbidden: insufficient wewenang' };
-			}
-		} else {
-			throw { code: 403, message: 'Forbidden: insufficient wewenang' };
-		}
-	}
-
-	if (target.manager_id === manager_id) {
-		return {
-			code: 200,
-			message: 'No changes applied',
-			data: { user: { user_id: target.user_id, manager_id: target.manager_id } },
-		};
-	}
-
-	target.manager_id = manager_id;
-	await target.save();
-
-	return {
-		code: 200,
-		message: 'Manager assigned successfully',
-		data: {
-			user: {
-				user_id: target.user_id,
-				manager_id: target.manager_id,
-			},
-		},
-	};
-};
-
 export const promoteUser = async (
 	req: AuthenticatedRequest,
 	_res: Response
@@ -145,7 +69,6 @@ export const promoteUser = async (
 		const { actorIdx, targetIdx } = getJabatanIndices(actorJabatan, from);
 		const toIdx = jabatanIndex(to);
         
-	if (role !== 'admin') {
 		if (actorIdx === 1) {
 			if (target.manager_id !== actorUser.user_id) {
 				throw { code: 403, message: 'Forbidden: cross manager not allowed' };
@@ -184,7 +107,6 @@ export const promoteUser = async (
 		} else {
 			throw { code: 403, message: 'Forbidden: insufficient wewenang' };
 		}
-	}
 
 	if (from === to) {
 		return {
@@ -217,3 +139,80 @@ export const promoteUser = async (
 		},
 	};
 };
+
+
+// export const assignManager = async (
+// 	req: AuthenticatedRequest,
+// 	_res: Response
+// ): Promise<ApiResponse<{ user: { user_id: string; manager_id: string } }>> => {
+// 	if (!req.auth?.id) {
+// 		throw { code: 401, message: 'Unauthorized' };
+// 	}
+
+// 	const id = getParamId(req);
+// 	const role = req.auth?.role;
+// 	const { manager_id } = req.body as { manager_id?: string };
+// 	const target = await User.findByPk(id);
+
+// 	if (!target || target.deletedAt) {
+// 		throw { code: 404, message: 'User not found' };
+// 	}
+
+// 	if (target.manager_id !== null){
+// 		throw { code: 400, message: 'User already has a manager assigned' };
+// 	}
+
+// 	if (!manager_id) {
+// 		throw { code: 400, message: 'manager_id is required' };
+// 	}
+
+// 	const manager = await User.findByPk(manager_id);
+// 	if (!manager || manager.deletedAt) {
+// 		throw { code: 404, message: 'Manager not found' };
+// 	}
+
+// 	const actorJabatan = req.auth?.jabatan ?? '';
+// 	const { actorIdx, targetIdx, managerIdx } = getJabatanIndices(
+// 		actorJabatan,
+// 		target.jabatan,
+// 		manager.jabatan
+// 	);
+
+// 	if (role !== 'admin') {
+// 		if (actorIdx === 1) {
+// 			if (!(targetIdx < managerIdx && managerIdx === 1)) {
+// 				throw { code: 403, message: 'Forbidden: insufficient wewenang' };
+// 			}
+// 		} else if (actorIdx === 2) {
+// 			const staffToManager = targetIdx < managerIdx && managerIdx === 1;
+// 			const managerToSupervisor = targetIdx === 1 && managerIdx === targetIdx;
+// 			if (!staffToManager && !managerToSupervisor) {
+// 				throw { code: 403, message: 'Forbidden: insufficient wewenang' };
+// 			}
+// 		} else {
+// 			throw { code: 403, message: 'Forbidden: insufficient wewenang' };
+// 		}
+// 	}
+
+// 	if (target.manager_id === manager_id) {
+// 		return {
+// 			code: 200,
+// 			message: 'No changes applied',
+// 			data: { user: { user_id: target.user_id, manager_id: target.manager_id } },
+// 		};
+// 	}
+
+// 	target.manager_id = manager_id;
+// 	await target.save();
+
+// 	return {
+// 		code: 200,
+// 		message: 'Manager assigned successfully',
+// 		data: {
+// 			user: {
+// 				user_id: target.user_id,
+// 				manager_id: target.manager_id,
+// 			},
+// 		},
+// 	};
+// };
