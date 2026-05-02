@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Row, Col, Table, Form, Badge, Alert, Spinner } from 'react-bootstrap';
 import type { User } from '../../model/User';
 import { userServices } from '../../services/apiServices';
-import dummny from '../../../public/dummy.jpg'
-
+import dummny from '../../../public/dummy.jpg';
 
 type Props = {
   userId: string;
@@ -33,6 +32,7 @@ export default function UserDetail({ userId, goBack }: Props) {
   const [error, setError] = useState<string>('');
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string>('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const fetchUserData = useCallback(async () => {
     setLoading(true);
@@ -40,12 +40,19 @@ export default function UserDetail({ userId, goBack }: Props) {
     try {
       const response = await userServices.getUserById(userId);
       const userData = response.data.user || response;
+
+      console.log(userData.gambar
+        ? `http://192.168.1.12:3000/${userData.gambar}`
+        : dummny
+      );
       setForm(userData);
-      setPreview(userData.gambar || dummny);
-      console.log(response.data)
+      setPreview(userData.gambar
+        ? `http://192.168.1.12:3000${userData.gambar}`
+        : dummny
+      );
+
     } catch (err: any) {
       setError(err.message || 'Gagal memuat data user');
-      console.error('Error fetching user:', err);
     } finally {
       setLoading(false);
     }
@@ -68,19 +75,19 @@ export default function UserDetail({ userId, goBack }: Props) {
   ) => {
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
-  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
 
-      setImageFile(file); // simpan file asli
+      setImageFile(file);
       setPreview(URL.createObjectURL(file));
     }
   };
+
   const handleSave = async () => {
     setSaveLoading(true);
     setSaveError('');
@@ -88,24 +95,24 @@ export default function UserDetail({ userId, goBack }: Props) {
     try {
       const formData = new FormData();
 
-      formData.append('nama', form.nama);
-      formData.append('email', form.email);
-      formData.append('alamat', form.alamat);
-      formData.append('tanggal_lahir', form.tanggal_lahir);
-      formData.append('nomor_telepon', form.nomor_telepon);
-      formData.append('jabatan', form.jabatan);
-      formData.append('role', form.role);
-      formData.append('departemen', form.departemen);
-      formData.append('manager_id', form.manager_id);
-      console.log(form.manager_id)
+      formData.append('nama', form.nama ?? '');
+      formData.append('email', form.email ?? '');
+      formData.append('alamat', form.alamat ?? '');
+      formData.append('tanggal_lahir', form.tanggal_lahir?.split('T')[0] ?? '');
+      formData.append('nomor_telepon', form.nomor_telepon ?? '');
+      formData.append('jabatan', form.jabatan ?? '');
+      formData.append('role', form.role ?? '');
+      formData.append('departemen', form.departemen ?? '');
+      formData.append('manager_id', form.manager_id ?? '');
 
       if (imageFile) {
-        formData.append('gambar', imageFile);
+        formData.append('gambar', imageFile, imageFile.name); // ← sertakan filename
       }
 
       await userServices.updateUser(userId, formData);
 
       setIsEdit(false);
+      setImageFile(null);
       alert('Data user berhasil diperbarui!');
       await fetchUserData();
 
@@ -115,6 +122,8 @@ export default function UserDetail({ userId, goBack }: Props) {
       setSaveLoading(false);
     }
   };
+
+
   const renderStatus = (status: string) => {
     if (status === 'Hadir') return <Badge bg="success">Hadir</Badge>;
     if (status === 'Telat') return <Badge bg="warning">Telat</Badge>;
@@ -124,7 +133,7 @@ export default function UserDetail({ userId, goBack }: Props) {
   if (loading) {
     return (
       <div className="text-center py-5">
-        <Spinner animation="border" size="sm" className="mb-2" />
+        <Spinner animation="border" size="sm" />
         <p>Loading data user...</p>
       </div>
     );
@@ -142,7 +151,6 @@ export default function UserDetail({ userId, goBack }: Props) {
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: 20 }}>
 
-      {/* BACK BUTTON */}
       <Button
         className="mb-3"
         onClick={goBack}
@@ -150,20 +158,13 @@ export default function UserDetail({ userId, goBack }: Props) {
           background: '#ffc0cb',
           border: 'none',
           color: '#333',
-          borderRadius: '10px'
+          borderRadius: '10px',
         }}
       >
         ← Back
       </Button>
 
-      {/* 🔥 PROFILE CARD */}
-      <Card
-        className="p-4 shadow-sm mb-4"
-        style={{
-          borderRadius: 16,
-          border: 'none'
-        }}
-      >
+      <Card className="p-4 shadow-sm mb-4" style={{ borderRadius: 16, border: 'none' }}>
         <Row>
           {/* LEFT */}
           <Col md={4} className="text-center border-end">
@@ -175,17 +176,9 @@ export default function UserDetail({ userId, goBack }: Props) {
                 height: 140,
                 borderRadius: '50%',
                 objectFit: 'cover',
-                border: '4px solid #ff3d7f'
+                border: '4px solid #ff3d7f',
               }}
             />
-
-            {isEdit && (
-              <Form.Control
-                type="file"
-                className="mt-3"
-                onChange={handleImageChange}
-              />
-            )}
 
             <h5 className="mt-3 fw-bold">{display(form.nama)}</h5>
 
@@ -202,7 +195,7 @@ export default function UserDetail({ userId, goBack }: Props) {
                 background: isEdit
                   ? '#ccc'
                   : 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
-                border: 'none'
+                border: 'none',
               }}
             >
               {isEdit ? 'Cancel' : 'Edit'}
@@ -218,15 +211,10 @@ export default function UserDetail({ userId, goBack }: Props) {
             {!isEdit ? (
               <Row>
                 <Col md={6}>
-                  <p><b>User ID</b><br />{display(userId)}</p>
+                  {/* <p><b>User ID</b><br />{display(userId)}</p> */}
                   <p><b>Email</b><br />{display(form.email)}</p>
                   <p><b>Nomor Telp</b><br />{display(form.nomor_telepon)}</p>
-                  <p>
-                    <b>Tanggal Lahir</b><br />
-                    {form.tanggal_lahir
-                      ? form.tanggal_lahir.split('T')[0]
-                      : '-'}
-                  </p>
+                  <p><b>Tanggal Lahir</b><br />{form.tanggal_lahir?.split('T')[0] || '-'}</p>
                 </Col>
 
                 <Col md={6}>
@@ -237,9 +225,7 @@ export default function UserDetail({ userId, goBack }: Props) {
               </Row>
             ) : (
               <Form>
-                {saveError && (
-                  <Alert variant="danger">{saveError}</Alert>
-                )}
+                {saveError && <Alert variant="danger">{saveError}</Alert>}
 
                 <Row>
                   <Col md={6}>
@@ -256,6 +242,16 @@ export default function UserDetail({ userId, goBack }: Props) {
                     <Form.Group className="mb-3">
                       <Form.Label>Nomor Telepon</Form.Label>
                       <Form.Control name="nomor_telepon" value={form.nomor_telepon || ''} onChange={handleChange} />
+                    </Form.Group>
+
+                    <Form.Group className="mb-3">
+                      <Form.Label>Tanggal Lahir</Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="tanggal_lahir"
+                        value={form.tanggal_lahir ? form.tanggal_lahir.split('T')[0] : ''}
+                        onChange={handleChange}
+                      />
                     </Form.Group>
                   </Col>
 
@@ -283,6 +279,11 @@ export default function UserDetail({ userId, goBack }: Props) {
                         <option value="PURCHASE">Purchase</option>
                       </Form.Select>
                     </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Foto Profil</Form.Label>
+                      <Form.Control type="file" accept="image/*" onChange={handleImageChange} />
+                    </Form.Group>
+
                   </Col>
                 </Row>
 
@@ -292,19 +293,13 @@ export default function UserDetail({ userId, goBack }: Props) {
                     disabled={saveLoading}
                     style={{
                       background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
-                      border: 'none'
+                      border: 'none',
                     }}
                   >
                     {saveLoading ? 'Saving...' : 'Save Changes'}
                   </Button>
 
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setIsEdit(false);
-                      setSaveError('');
-                    }}
-                  >
+                  <Button variant="secondary" onClick={() => setIsEdit(false)}>
                     Cancel
                   </Button>
                 </div>
@@ -314,14 +309,8 @@ export default function UserDetail({ userId, goBack }: Props) {
         </Row>
       </Card>
 
-      {/* 🔥 ABSENSI */}
-      <Card
-        className="p-4 shadow-sm"
-        style={{
-          borderRadius: 16,
-          border: 'none'
-        }}
-      >
+      {/* ABSENSI */}
+      <Card className="p-4 shadow-sm" style={{ borderRadius: 16, border: 'none' }}>
         <h5 style={{ color: '#ff3d7f' }}>Log Absensi</h5>
 
         <Table hover className="mt-3 align-middle">

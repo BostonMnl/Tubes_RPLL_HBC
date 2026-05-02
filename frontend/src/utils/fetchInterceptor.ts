@@ -20,7 +20,8 @@ export async function fetchWithToken(
   const headers = new Headers(options.headers || {});
 
   // Ensure content-type is always set to JSON
-  if (!headers.has('Content-Type')) {
+  const isFormData = options.body instanceof FormData;
+  if (!isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 

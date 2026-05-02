@@ -37,6 +37,7 @@ export default function UserPage() {
   const [newUser, setNewUser] = useState<UserFormData>(initialFormState);
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setPageLoading(true);
@@ -66,39 +67,54 @@ export default function UserPage() {
     }));
   };
 
-  const handleAdd = async () => {
-    const errors: Record<string, string> = {};
+const handleAdd = async () => {
+  const errors: Record<string, string> = {};
 
-    if (!newUser.nama) errors.nama = 'Nama wajib diisi';
-    if (!newUser.email) errors.email = 'Email wajib diisi';
-    if (!newUser.password) errors.password = 'Password wajib diisi';
-    if (!newUser.alamat) errors.alamat = 'Alamat wajib diisi';
-    if (!newUser.nomor_telepon) errors.nomer_telepon = 'Nomer telepon  wajib diisi';
-    if (!newUser.tanggal_lahir) errors.tanggal_lahir = 'Tanggal lahir wajib diisi';
+  if (!newUser.nama) errors.nama = 'Nama wajib diisi';
+  if (!newUser.email) errors.email = 'Email wajib diisi';
+  if (!newUser.password) errors.password = 'Password wajib diisi';
+  if (!newUser.alamat) errors.alamat = 'Alamat wajib diisi';
+  if (!newUser.nomor_telepon) errors.nomor_telepon = 'Nomer telepon wajib diisi';
+  if (!newUser.tanggal_lahir) errors.tanggal_lahir = 'Tanggal lahir wajib diisi';
 
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
+  if (Object.keys(errors).length > 0) {
+    setFieldErrors(errors);
+    alert('Harap lengkapi semua field yang wajib diisi!');
+    return;
+  }
 
-      alert('Harap lengkapi semua field yang wajib diisi!');
-      return;
+  setFormLoading(true);
+  setFormError('');
+
+  try {
+    const formData = new FormData();
+    formData.append('nama', newUser.nama);
+    formData.append('email', newUser.email);
+    formData.append('password', newUser.password);
+    formData.append('alamat', newUser.alamat ?? '');
+    formData.append('nomor_telepon', newUser.nomor_telepon ?? '');
+    formData.append('tanggal_lahir', newUser.tanggal_lahir ?? '');
+    formData.append('jabatan', newUser.jabatan);
+    formData.append('role', newUser.role);
+    formData.append('departemen', newUser.departemen);
+
+    if (imageFile) {
+      formData.append('gambar', imageFile, imageFile.name);
     }
 
+    await userServices.createUser(formData);
 
-    setFormLoading(true);
-    setFormError('');
-
-    try {
-      await userServices.createUser(newUser);
-      setShowAddModal(false);
-      setNewUser(initialFormState);
-      setPreview('');
-      await fetchUsers();
-    } catch (err: any) {
-      setFormError(err.message || 'Gagal menambah user');
-    } finally {
-      setFormLoading(false);
-    }
-  };
+    setShowAddModal(false);
+    setNewUser(initialFormState);
+    setImageFile(null);
+    setPreview('');
+    await fetchUsers();
+  } catch (err: any) {
+    setFormError(err.message || 'Gagal menambah user');
+  } finally {
+    setFormLoading(false);
+  }
+};
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus user ini?')) {
@@ -111,18 +127,13 @@ export default function UserPage() {
     }
   };
 
-  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
-
-      setPreview(url);
-      setNewUser(prev => ({
-        ...prev,
-        gambar: url
-      }));
-    }
-  };
+const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files[0]) {
+    const file = e.target.files[0];
+    setImageFile(file);
+    setPreview(URL.createObjectURL(file));
+  }
+};
 
   if (selectedId) {
     return <UserDetail userId={selectedId} goBack={() => setSelectedId(null)} />;
