@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react';
 import { Badge, Card, Spinner } from 'react-bootstrap';
 import { userServices } from '../services/apiServices';
 
+// 🔥 urutan jabatan (sama kayak backend)
+const JABATAN_VALUES = ['staff', 'manager', 'supervisor'];
+
+const jabatanIndex = (value: string): number => {
+  const idx = JABATAN_VALUES.indexOf(value);
+  if (idx === -1) return -1;
+  return idx;
+};
+
 type User = {
   user_id: string;
   nama: string;
@@ -9,73 +18,77 @@ type User = {
   jabatan: string;
   role: string;
   departemen: string;
+  manager_id?: string | null; // 🔥 penting
 };
 
 type TreeUser = User & {
   children?: TreeUser[];
 };
 
-function buildTree(users: User[]): TreeUser[] {
-  const departments = Array.from(new Set(users.map(u => u.departemen)));
+// 🔥 SORT TREE (biar supervisor > manager > staff)
+function sortTree(node: TreeUser) {
+  if (node.children && node.children.length > 0) {
+    node.children.sort(
+      (a, b) => jabatanIndex(b.jabatan) - jabatanIndex(a.jabatan)
+    );
 
-  return departments.map(dept => {
-    const deptUsers = users.filter(u => u.departemen === dept);
+    node.children.forEach(child => sortTree(child));
+  }
+}
 
-    const admins = deptUsers.filter(u => u.role === 'admin');
-    const supervisors = deptUsers.filter(u => u.jabatan === 'supervisor');
-    const managers = deptUsers.filter(u => u.jabatan === 'manager');
-    const staff = deptUsers.filter(u => u.jabatan === 'staff');
+// 🔥 BUILD TREE BASED ON manager_id
+function buildHierarchy(users: User[]): TreeUser[] {
+  const map = new Map<string, TreeUser>();
 
-    const deptNode: TreeUser = {
-      user_id: `dept-${dept}`,
-      nama: dept,
-      email: '',
-      jabatan: 'department',
-      role: '',
-      departemen: dept,
-      children: [],
-    };
-
-    // 🔥 helper builder
-    const buildManagers = () =>
-      managers.map(m => ({
-        ...m,
-        children: staff.map(st => ({ ...st })),
-      }));
-
-    const buildSupervisors = () =>
-      supervisors.map(s => ({
-        ...s,
-        children: buildManagers().length > 0 ? buildManagers() : staff.map(st => ({ ...st })),
-      }));
-
-    // 🔥 ADMIN LEVEL
-    if (admins.length > 0) {
-      deptNode.children = admins.map(a => ({
-        ...a,
-        children:
-          buildSupervisors().length > 0
-            ? buildSupervisors()
-            : buildManagers().length > 0
-            ? buildManagers()
-            : staff.map(st => ({ ...st })),
-      }));
-    }
-    // 🔥 NO ADMIN → SUPERVISOR
-    else if (supervisors.length > 0) {
-      deptNode.children = buildSupervisors();
-    }
-    // 🔥 NO SUPERVISOR → MANAGER
-    else if (managers.length > 0) {
-      deptNode.children = buildManagers();
-    }
-    // 🔥 ONLY STAFF
-    else {
-      deptNode.children = staff.map(st => ({ ...st }));
-    }
-
-    return deptNode;
+  // init node
+  users.forEach(u => {
+    map.set(u.user_id, { ...u, children: [] });
   });
+
+  const roots: TreeUser[] = [];
+
+  users.forEach(u => {
+    const node = map.get(u.user_id)!;
+
+    if (u.manager_id) {
+      const parent = map.get(u.manager_id);
+
+      if (parent) {
+        parent.children!.push(node);
+      } else {
+        roots.push(node); // fallback kalau parent tidak ada
+      }
+    } else {
+      roots.push(node); // top level
+    }
+  });
+
+  // sorting
+  roots.forEach(root => sortTree(root));
+
+  return roots;
+}
+
+// 🔥 GROUP PER DEPARTEMEN + TREE
+function buildTree(users: User[]): TreeUser[] {
+  const grouped: Record<string, User[]> = {};
+
+  users.forEach(user => {
+    if (!grouped[user.departemen]) {
+      grouped[user.departemen] = [];
+    }
+    grouped[user.departemen].push(user);
+  });
+
+  return Object.keys(grouped).map(dept => ({
+    user_id: `dept-${dept}`,
+    nama: dept,
+    email: '',
+    jabatan: 'department',
+    role: '',
+    departemen: dept,
+    children: buildHierarchy(grouped[dept]),
+  }));
 }
 
 export default function ManagementTree() {
@@ -87,7 +100,7 @@ export default function ManagementTree() {
       setLoading(true);
       try {
         const response = await userServices.getAllUsers();
-        const userList = response.data?.user || [];
+        const userList: User[] = response.data?.user || [];
 
         setTree(buildTree(userList));
       } catch (err) {
@@ -105,7 +118,6 @@ export default function ManagementTree() {
 
     return (
       <div style={{ marginLeft: level * 30 }} className="mb-3">
-
         <Card
           className="shadow-sm"
           style={{
@@ -117,12 +129,12 @@ export default function ManagementTree() {
           <Card.Body className="py-2 px-3 d-flex justify-content-between align-items-center">
             <div>
               <div style={{ fontWeight: 600 }}>
-                {node.nama}
+                {node.nama.toUpperCase()}
               </div>
 
               {!isDept && (
                 <small style={{ color: '#888' }}>
-                  {node.jabatan} • {node.departemen}
+                  {node.jabatan.toUpperCase()} • {node.departemen.toUpperCase()}
                 </small>
               )}
             </div>
@@ -131,7 +143,7 @@ export default function ManagementTree() {
               <div className="d-flex gap-2">
                 <Badge bg="secondary">{node.role}</Badge>
                 <Badge style={{ background: '#ff6fa5' }}>
-                  {node.departemen}
+                  {node.departemen.toUpperCase()}
                 </Badge>
               </div>
             )}
@@ -141,7 +153,11 @@ export default function ManagementTree() {
         {node.children && node.children.length > 0 && (
           <div className="mt-2">
             {node.children.map(child => (
-              <TreeNode key={child.user_id} node={child} level={level + 1} />
+              <TreeNode
+                key={child.user_id}
+                node={child}
+                level={level + 1}
+              />
             ))}
           </div>
         )}
@@ -159,7 +175,6 @@ export default function ManagementTree() {
 
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
-
       <Card
         className="p-4 mb-4 shadow-sm"
         style={{
@@ -176,7 +191,6 @@ export default function ManagementTree() {
       {tree.map(node => (
         <TreeNode key={node.user_id} node={node} />
       ))}
-
     </div>
   );
 }
