@@ -70,6 +70,7 @@ export const createUser = async (
         departemen,
         gambar,
         password,
+        manager_id,
     } = req.body as {
         nama?: string;
         alamat?: string;
@@ -81,10 +82,9 @@ export const createUser = async (
         departemen?: string;
         gambar?: string;
         password?: string;
-        manager_email?: string;
+        manager_id?: string;
     };
-
-    let manager_id: string;
+    
     const file = (req as Request & { file?: Express.Multer.File }).file;
     const gambarFromFile = file ? `/uploads/${file.filename}` : undefined;
 
@@ -139,11 +139,13 @@ export const createUser = async (
         throw { code: 409, message: 'Email already registered' };
     }
 
-    const existingManager = await User.findOne({ where: { email: req.body.manager_email } });
-    if (!existingManager || existingManager.deletedAt) {
-        throw { code: 400, message: 'Manager with the provided email does not exist' };
-    } else {
-        manager_id = existingManager.user_id;
+    if (req.body.manager_id) {
+        const existingManager = await User.findByPk(req.body.manager_id);
+        if (!existingManager || existingManager.deletedAt) {
+            throw { code: 400, message: 'Manager with the provided ID does not exist' };
+        }else if (existingManager.departemen !== departemen) {
+            throw { code: 400, message: 'Manager must be in the same department as the user' };
+        }
     }
 
 
@@ -157,7 +159,8 @@ export const createUser = async (
         role: role,
         departemen: departemen,
         gambar: gambarFromFile ?? gambar ?? null,
-        password: password,
+        password : password,
+        manager_id: manager_id ?? null,
     });
 
     const gambarUrl = buildGambarUrl(req, createdUser.gambar);
@@ -177,7 +180,7 @@ export const createUser = async (
                 jabatan: createdUser.jabatan,
                 role: createdUser.role,
                 departemen: createdUser.departemen,
-                manager_id: manager_id,
+                manager_id: createdUser.manager_id,
             },
         },
     };
@@ -335,8 +338,7 @@ export const updateProfileById = async (
         tanggal_lahir == null ||
         jabatan == null ||
         role == null ||
-        departemen == null ||
-        manager_id == null
+        departemen == null
     ) {
         throw { code: 401, message: 'Mandatory fields are missing' };
     }
@@ -362,15 +364,18 @@ export const updateProfileById = async (
     user.alamat = alamat;
     user.tanggal_lahir = parsedTanggalLahir;
     if (nomor_telepon !== undefined) user.nomor_telepon = nomor_telepon;
+
     if (gambarFromFile !== undefined) {
         user.gambar = gambarFromFile;
     } else if (gambar !== undefined) {
         user.gambar = gambar;
+    }else if (manager_id != null) {
+        user.manager_id = manager_id;
     }
+
     user.jabatan = jabatan;
     user.role = role;
     user.departemen = departemen;
-    user.manager_id = manager_id;
 
     await user.save();
 
