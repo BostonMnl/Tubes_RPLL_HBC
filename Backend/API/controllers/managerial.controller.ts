@@ -84,11 +84,11 @@ export const promoteUser = async (
 				if (!targetManager || targetManager.deletedAt) {
 					throw { code: 404, message: 'Manager not found' };
 				}
-				if (targetManager.manager_id !== actorUser.manager_id) {
+				if (targetManager.manager_id !== actorUser.user_id) {
 					throw { code: 403, message: 'cross supervisor not allowed' };
 				}
 			} else if (targetIdx === 1) {
-				if (target.manager_id !== actorUser.manager_id) {
+				if (target.manager_id !== actorUser.user_id) {
 					throw { code: 403, message: 'cross supervisor not allowed' };
 				}
 			}
@@ -119,9 +119,13 @@ export const promoteUser = async (
 	}
 
 	if (to === 'manager') {
-		target.manager_id = actorUser.manager_id
+		if (actorIdx === 1) {
+			target.manager_id = actorUser.manager_id
+		}else {
+			target.manager_id = actorUser.user_id;
+		}
 	}else {
-		target.manager_id = '';
+		target.manager_id = null;
 	};
 
 	target.jabatan = to;
