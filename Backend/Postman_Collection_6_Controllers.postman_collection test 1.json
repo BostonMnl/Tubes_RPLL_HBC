@@ -1,0 +1,1971 @@
+{
+  "info": {
+    "name": "RPLL 6 Controllers Test Suite",
+    "description": "Comprehensive test collection for Reimburse, Penalti, Insentif, Gaji, Cuti, and Payroll controllers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Reimburse Controller",
+      "item": [
+        {
+          "name": "1.1 Create - Staff Pending Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "{{staff_user_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "nominal",
+                  "value": "50000",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal",
+                  "value": "2026-05-03",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Transport and meal reimbursement",
+                  "type": "text"
+                },
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reimburse",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse"]
+            },
+            "description": "Staff submits reimburse request - Status should be Pending"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.reimburse) {",
+                  "    pm.collectionVariables.set(\"reimburse_id_pending\", response.data.reimburse.reimburse_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Create - Supervisor Auto-Approved Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_supervisor}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "{{supervisor_user_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "nominal",
+                  "value": "75000",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal",
+                  "value": "2026-05-03",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Official business trip",
+                  "type": "text"
+                },
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reimburse",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse"]
+            },
+            "description": "Supervisor creates reimburse - Should be auto-approved"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.reimburse) {",
+                  "    pm.collectionVariables.set(\"reimburse_id_approved\", response.data.reimburse.reimburse_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Create - Invalid Nominal (Non-numeric)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "{{staff_user_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "nominal",
+                  "value": "abc",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal",
+                  "value": "2026-05-03",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Invalid nominal test",
+                  "type": "text"
+                },
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reimburse",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse"]
+            },
+            "description": "Should fail with 400 - Invalid nominal (non-numeric)"
+          }
+        },
+        {
+          "name": "1.4 Update - Pending Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "nominal",
+                  "value": "60000",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Updated reimbursement",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reimburse/{{reimburse_id_pending}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse", "{{reimburse_id_pending}}"]
+            },
+            "description": "Update a pending reimburse request"
+          }
+        },
+        {
+          "name": "1.5 Update - Approved Request (Should Fail)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "nominal",
+                  "value": "70000",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reimburse/{{reimburse_id_approved}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse", "{{reimburse_id_approved}}"]
+            },
+            "description": "Should fail with 400 - Cannot update approved reimburse"
+          }
+        },
+        {
+          "name": "1.6 Approve - Manager approves Staff request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reimburse/{{reimburse_id_pending}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse", "{{reimburse_id_pending}}", "approval"]
+            },
+            "description": "Manager approves staff reimburse request"
+          }
+        },
+        {
+          "name": "1.7 Approve - Manager tries to approve Manager request (Should Fail)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reimburse/{{reimburse_id_manager}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse", "{{reimburse_id_manager}}", "approval"]
+            },
+            "description": "Should fail with 403 - Manager cannot approve other managers"
+          }
+        },
+        {
+          "name": "1.8 Delete - Pending Request",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reimburse/{{reimburse_id_pending}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse", "{{reimburse_id_pending}}"]
+            },
+            "description": "Delete a pending reimburse request"
+          }
+        },
+        {
+          "name": "1.9 Get All Reimburse Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reimburse",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reimburse"]
+            },
+            "description": "Get all reimburse requests (filtered to Pending by default)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Penalti Controller",
+      "item": [
+        {
+          "name": "2.1 Create - Manager creates for Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "{{staff_user_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "jenis",
+                  "value": "Telat Masuk",
+                  "type": "text"
+                },
+                {
+                  "key": "nominal",
+                  "value": "50000",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal",
+                  "value": "2026-05-02",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Late arrival - 2 hours",
+                  "type": "text"
+                },
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/penalti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti"]
+            },
+            "description": "Manager creates penalty for Staff - Should succeed"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.penalti) {",
+                  "    pm.collectionVariables.set(\"penalti_id\", response.data.penalti.penalti_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Create - Invalid jenis (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "{{staff_user_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "jenis",
+                  "value": "Nakal",
+                  "type": "text"
+                },
+                {
+                  "key": "nominal",
+                  "value": "30000",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal",
+                  "value": "2026-05-02",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Invalid type test",
+                  "type": "text"
+                },
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/penalti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti"]
+            },
+            "description": "Should fail with 400 - Invalid jenis value"
+          }
+        },
+        {
+          "name": "2.3 Create - Manager tries for Supervisor (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "{{supervisor_user_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "jenis",
+                  "value": "Telat Masuk",
+                  "type": "text"
+                },
+                {
+                  "key": "nominal",
+                  "value": "50000",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal",
+                  "value": "2026-05-02",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Test hierarchy",
+                  "type": "text"
+                },
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/penalti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti"]
+            },
+            "description": "Should fail with 403 - Manager cannot create for Supervisor"
+          }
+        },
+        {
+          "name": "2.4 Create - Supervisor for self",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_supervisor}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "user_id",
+                  "value": "{{supervisor_user_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "jenis",
+                  "value": "Mengrusak",
+                  "type": "text"
+                },
+                {
+                  "key": "nominal",
+                  "value": "100000",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal",
+                  "value": "2026-05-02",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Self-imposed penalty",
+                  "type": "text"
+                },
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/penalti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti"]
+            },
+            "description": "Supervisor creates penalty for self - Should succeed"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.penalti) {",
+                  "    pm.collectionVariables.set(\"penalti_id_with_payroll\", response.data.penalti.penalti_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/penalti/{{penalti_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti", "{{penalti_id}}"]
+            },
+            "description": "Get specific penalty by ID"
+          }
+        },
+        {
+          "name": "2.6 Update - Valid update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nominal\": \"60000\",\n  \"keterangan\": \"Updated penalty amount\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/penalti/{{penalti_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti", "{{penalti_id}}"]
+            },
+            "description": "Update penalty details"
+          }
+        },
+        {
+          "name": "2.7 Update - No fields (Should Fail)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/penalti/{{penalti_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti", "{{penalti_id}}"]
+            },
+            "description": "Should fail with 400 - At least one field required"
+          }
+        },
+        {
+          "name": "2.8 Delete - Penalty not linked to payroll",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/penalti/{{penalti_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti", "{{penalti_id}}"]
+            },
+            "description": "Delete penalty record"
+          }
+        },
+        {
+          "name": "2.9 Delete - Penalty linked to payroll (Should Fail)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/penalti/{{penalti_id_with_payroll}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti", "{{penalti_id_with_payroll}}"]
+            },
+            "description": "Should fail with 400 - Cannot delete penalty linked to payroll"
+          }
+        },
+        {
+          "name": "2.10 Get All Penalties",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/penalti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "penalti"]
+            },
+            "description": "Get all penalties (Admin only)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Insentif Controller",
+      "item": [
+        {
+          "name": "3.1 Create - Manager gives to Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{staff_user_id}}\",\n  \"nominal\": \"500000\",\n  \"keterangan\": \"Performance bonus for May\",\n  \"tanggal\": \"2026-05-03\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/insentif",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif"]
+            },
+            "description": "Manager creates incentive for Staff - Should succeed"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.insentif) {",
+                  "    pm.collectionVariables.set(\"insentif_id\", response.data.insentif.insentif_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Create - Invalid user_id (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"nonexistent_id\",\n  \"nominal\": \"500000\",\n  \"keterangan\": \"Test\",\n  \"tanggal\": \"2026-05-03\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/insentif",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif"]
+            },
+            "description": "Should fail with 404 - User not found"
+          }
+        },
+        {
+          "name": "3.3 Create - Negative nominal (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{staff_user_id}}\",\n  \"nominal\": \"-100000\",\n  \"keterangan\": \"Test negative\",\n  \"tanggal\": \"2026-05-03\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/insentif",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif"]
+            },
+            "description": "Should fail with 400 - Nominal must be positive"
+          }
+        },
+        {
+          "name": "3.4 Create - Manager for Manager (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{manager_user_id_2}}\",\n  \"nominal\": \"500000\",\n  \"keterangan\": \"Test hierarchy\",\n  \"tanggal\": \"2026-05-03\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/insentif",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif"]
+            },
+            "description": "Should fail with 403 - Manager cannot give incentive to peer"
+          }
+        },
+        {
+          "name": "3.5 Get My Insentif",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/insentif/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif", "me"]
+            },
+            "description": "Get my own incentives"
+          }
+        },
+        {
+          "name": "3.6 Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/insentif/{{insentif_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif", "{{insentif_id}}"]
+            },
+            "description": "Get specific incentive by ID"
+          }
+        },
+        {
+          "name": "3.7 Edit - Valid edit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nominal\": \"600000\",\n  \"keterangan\": \"Updated bonus amount\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/insentif/{{insentif_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif", "{{insentif_id}}"]
+            },
+            "description": "Edit incentive details"
+          }
+        },
+        {
+          "name": "3.8 Edit - Linked to payroll (Should Fail)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nominal\": \"700000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/insentif/{{insentif_id_with_payroll}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif", "{{insentif_id_with_payroll}}"]
+            },
+            "description": "Should fail with 400 - Cannot edit incentive linked to payroll"
+          }
+        },
+        {
+          "name": "3.9 Delete - Valid delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/insentif/{{insentif_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif", "{{insentif_id}}"]
+            },
+            "description": "Delete incentive record"
+          }
+        },
+        {
+          "name": "3.10 Delete - Linked to payroll (Should Fail)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/insentif/{{insentif_id_with_payroll}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif", "{{insentif_id_with_payroll}}"]
+            },
+            "description": "Should fail with 400 - Cannot delete incentive linked to payroll"
+          }
+        },
+        {
+          "name": "3.11 Get All Insentif",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/insentif",
+              "host": ["{{base_url}}"],
+              "path": ["api", "insentif"]
+            },
+            "description": "Get all incentives"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Gaji Controller",
+      "item": [
+        {
+          "name": "4.1 Create - Manager creates for Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{staff_user_id}}\",\n  \"nominal\": \"5000000\",\n  \"tanggal_berlaku\": \"2026-05-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/gaji",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji"]
+            },
+            "description": "Manager creates salary for Staff"
+          }
+        },
+        {
+          "name": "4.2 Create - Invalid date format (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{staff_user_id}}\",\n  \"nominal\": \"5000000\",\n  \"tanggal_berlaku\": \"32-01-2026\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/gaji",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji"]
+            },
+            "description": "Should fail with 400 - Invalid date format"
+          }
+        },
+        {
+          "name": "4.3 Create - Zero nominal (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{staff_user_id}}\",\n  \"nominal\": \"0\",\n  \"tanggal_berlaku\": \"2026-05-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/gaji",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji"]
+            },
+            "description": "Should fail with 400 - Nominal must be positive"
+          }
+        },
+        {
+          "name": "4.4 Get My Gaji",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/gaji/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji", "me"]
+            },
+            "description": "Get my own salary"
+          }
+        },
+        {
+          "name": "4.5 Get by User ID - Own data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/gaji/{{staff_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji", "{{staff_user_id}}"]
+            },
+            "description": "Get own salary via user ID"
+          }
+        },
+        {
+          "name": "4.6 Get by User ID - Other person (Should Fail if Staff)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/gaji/{{manager_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji", "{{manager_user_id}}"]
+            },
+            "description": "Should fail with 403 if staff tries to view others' salary"
+          }
+        },
+        {
+          "name": "4.7 Update - Admin updates Supervisor salary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nominal\": \"6000000\",\n  \"tanggal_berlaku\": \"2026-06-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/gaji/{{supervisor_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji", "{{supervisor_user_id}}"]
+            },
+            "description": "Admin updates supervisor salary"
+          }
+        },
+        {
+          "name": "4.8 Update - Manager updates Supervisor (Should Fail)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nominal\": \"7000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/gaji/{{supervisor_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji", "{{supervisor_user_id}}"]
+            },
+            "description": "Should fail with 403 - Manager cannot update supervisor salary"
+          }
+        },
+        {
+          "name": "4.9 Get All Gaji",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/gaji",
+              "host": ["{{base_url}}"],
+              "path": ["api", "gaji"]
+            },
+            "description": "Get all salary records"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Cuti Controller",
+      "item": [
+        {
+          "name": "5.1 Create My Request - Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tanggal_mulai\": \"2026-05-10\",\n  \"tanggal_akhir\": \"2026-05-14\",\n  \"jenis_cuti\": \"Cuti_Tahunan\",\n  \"keterangan\": \"Annual leave for family gathering\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cuti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti"]
+            },
+            "description": "Staff creates cuti request - Status should be Pending"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.cuti) {",
+                  "    pm.collectionVariables.set(\"cuti_id_pending\", response.data.cuti.cuti_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2 Create My Request - Supervisor (Auto-Approved)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_supervisor}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tanggal_mulai\": \"2026-05-20\",\n  \"tanggal_akhir\": \"2026-05-22\",\n  \"jenis_cuti\": \"Cuti_Sakit\",\n  \"keterangan\": \"Sick leave\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cuti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti"]
+            },
+            "description": "Supervisor creates cuti - Should auto-approve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.cuti) {",
+                  "    pm.collectionVariables.set(\"cuti_id_approved\", response.data.cuti.cuti_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.3 Create My Request - Invalid date range (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tanggal_mulai\": \"2026-05-20\",\n  \"tanggal_akhir\": \"2026-05-10\",\n  \"jenis_cuti\": \"Cuti_Tahunan\",\n  \"keterangan\": \"Invalid date\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cuti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti"]
+            },
+            "description": "Should fail with 400 - End date before start date"
+          }
+        },
+        {
+          "name": "5.4 Get My Cuti",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cuti/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti", "me"]
+            },
+            "description": "Get my own cuti requests"
+          }
+        },
+        {
+          "name": "5.5 Get Remaining Cuti Quota",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cuti/quota",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti", "quota"]
+            },
+            "description": "Check remaining annual leave quota"
+          }
+        },
+        {
+          "name": "5.6 Get All Cuti Requests (Manager/Supervisor only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cuti",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti"]
+            },
+            "description": "Get pending cuti requests (Manager/Supervisor only)"
+          }
+        },
+        {
+          "name": "5.7 Approve Cuti Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cuti/{{cuti_id_pending}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti", "{{cuti_id_pending}}", "approval"]
+            },
+            "description": "Manager approves cuti request"
+          }
+        },
+        {
+          "name": "5.8 Reject Cuti Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_supervisor}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Rejected\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cuti/{{cuti_id_pending}}/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti", "{{cuti_id_pending}}", "approval"]
+            },
+            "description": "Supervisor rejects cuti request"
+          }
+        },
+        {
+          "name": "5.9 Delete - Pending Request",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cuti/{{cuti_id_pending}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti", "{{cuti_id_pending}}"]
+            },
+            "description": "Delete pending cuti request"
+          }
+        },
+        {
+          "name": "5.10 Delete - Approved Request (Should Fail)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cuti/{{cuti_id_approved}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti", "{{cuti_id_approved}}"]
+            },
+            "description": "Should fail with 400 - Cannot delete approved cuti"
+          }
+        },
+        {
+          "name": "5.11 Get All Cuti",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/cuti/all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cuti", "all"]
+            },
+            "description": "Get all cuti records (Admin only)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payroll Controller",
+      "item": [
+        {
+          "name": "6.1 Create Payroll - Manager for Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{staff_user_id}}\",\n  \"bulan\": 5,\n  \"tahun\": 2026\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payroll",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll"]
+            },
+            "description": "Manager generates payroll for Staff - Calculates: (Gaji + Insentif + Reimburse) - Penalti"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.payroll) {",
+                  "    pm.collectionVariables.set(\"payroll_id\", response.data.payroll.payroll_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 Create Payroll - Duplicate period (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{staff_user_id}}\",\n  \"bulan\": 5,\n  \"tahun\": 2026\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payroll",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll"]
+            },
+            "description": "Should fail with 400 - Payroll already exists for this period"
+          }
+        },
+        {
+          "name": "6.3 Get My Payroll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payroll/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll", "me"]
+            },
+            "description": "Get my own payroll records"
+          }
+        },
+        {
+          "name": "6.4 Get Payroll by User ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payroll/user/{{staff_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll", "user", "{{staff_user_id}}"]
+            },
+            "description": "Get payroll for specific staff member"
+          }
+        },
+        {
+          "name": "6.5 Get Payroll by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payroll/{{payroll_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll", "{{payroll_id}}"]
+            },
+            "description": "Get specific payroll slip by ID"
+          }
+        },
+        {
+          "name": "6.6 Get All Payroll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payroll",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll"]
+            },
+            "description": "Get all payroll records (Manager/Supervisor/Admin)"
+          }
+        },
+        {
+          "name": "6.7 Get Payroll - Staff views others (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_staff}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payroll/user/{{manager_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll", "user", "{{manager_user_id}}"]
+            },
+            "description": "Should fail with 403 - Staff cannot view manager's payroll"
+          }
+        },
+        {
+          "name": "6.8 Delete Payroll - Unlinks related records",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_manager}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payroll/{{payroll_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll", "{{payroll_id}}"]
+            },
+            "description": "Delete payroll - Should set payroll_id to NULL in Insentif and Penalti tables"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup & Authentication",
+      "item": [
+        {
+          "name": "Auth - Login Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"staff@gmail.com\",\n  \"password\": \"12321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login staff - Save token_staff in environment"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set(\"token_staff\", response.data.token);",
+                  "    pm.collectionVariables.set(\"staff_user_id\", response.data.user.user_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@gmail.com\",\n  \"password\": \"12321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login manager - Save token_manager in environment"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set(\"token_manager\", response.data.token);",
+                  "    pm.collectionVariables.set(\"manager_user_id\", response.data.user.user_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"supervisor@gmail.com\",\n  \"password\": \"12321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login supervisor - Save token_supervisor in environment"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set(\"token_supervisor\", response.data.token);",
+                  "    pm.collectionVariables.set(\"supervisor_user_id\", response.data.user.user_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"12321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login admin - Save token_admin in environment"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set(\"token_admin\", response.data.token);",
+                  "    pm.collectionVariables.set(\"admin_user_id\", response.data.user.user_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://10.93.173.158:3000",
+      "type": "string"
+    },
+    {
+      "key": "token_staff",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_manager",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_supervisor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_admin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staff_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "manager_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "manager_user_id_2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supervisor_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reimburse_id_pending",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reimburse_id_approved",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reimburse_id_manager",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "penalti_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "penalti_id_with_payroll",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "insentif_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "insentif_id_with_payroll",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cuti_id_pending",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cuti_id_approved",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payroll_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

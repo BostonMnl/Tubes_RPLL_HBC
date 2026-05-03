@@ -1,4 +1,4 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, AllowNull } from 'sequelize-typescript';
 import { User } from './user';
 import { Payroll } from './payroll';
 
@@ -39,6 +39,12 @@ export class Penalti extends Model {
         allowNull: false
     })
     declare tanggal: Date;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true
+    })
+    declare gambar: string | null;
 
     @ForeignKey(() => User)
     @Column({

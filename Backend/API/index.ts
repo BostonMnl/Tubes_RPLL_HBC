@@ -12,6 +12,7 @@ import cutiRoutes from './routes/cuti.routes';
 import gajiRoutes from './routes/gaji.routes';
 import insentifRoutes from './routes/insentif.routes';
 import penaltiRoutes from './routes/pinalti.routes';
+import payrollRoutes from './routes/payroll.routes';
 import attendanceRoutes from './routes/attendance.routes';
 import adminAttendanceManageRoutes from './routes/admin.attendanceManage.routes';
 import { apiErrorHandler } from './middlewares/response.middleware';
@@ -34,6 +35,7 @@ app.use('/api/cuti', cutiRoutes);
 app.use('/api/gaji', gajiRoutes);
 app.use('/api/insentif', insentifRoutes);
 app.use('/api/penalti', penaltiRoutes);
+app.use('/api/payroll', payrollRoutes);
 // app.use('/api/attendance', attendanceRoutes);
 
 // Error handler (must be after routes)
