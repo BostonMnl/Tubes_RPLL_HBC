@@ -148,16 +148,16 @@ export const createUser = async (
 
 
     const createdUser = await User.create({
-        nama : nama,
-        alamat : alamat,
-        email : email,
+        nama: nama,
+        alamat: alamat,
+        email: email,
         tanggal_lahir: parsedTanggalLahir,
         nomor_telepon: nomor_telepon ?? null,
-        jabatan : jabatan,
-        role : role,
-        departemen : departemen,
+        jabatan: jabatan,
+        role: role,
+        departemen: departemen,
         gambar: gambarFromFile ?? gambar ?? null,
-        password : password,
+        password: password,
     });
 
     const gambarUrl = buildGambarUrl(req, createdUser.gambar);
@@ -227,7 +227,7 @@ export const getAllUsers = async (
     }
 
     const user = await User.findAll({
-        attributes: ['user_id', 'nama', 'email','jabatan', 'role', 'departemen', 'manager_id'],
+        attributes: ['user_id', 'nama', 'email', 'jabatan', 'role', 'departemen', 'manager_id'],
     });
 
 
@@ -246,7 +246,15 @@ export const getProfileId = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
+    const actor = req.auth;
+
     const id = getParamId(req);
+
+    const actorUser = await User.findByPk(actor.id, { attributes: ['jabatan'] });
+
+    if (actorUser?.jabatan === 'staff' && actor.id !== id) {
+        throw { code: 403, message: 'Forbidden' };
+    }
 
     const user = await User.findByPk(id, {
         attributes: ['nama', 'email', 'alamat', 'tanggal_lahir', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen', 'manager_id'],
