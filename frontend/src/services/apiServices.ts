@@ -41,6 +41,10 @@ export const userServices = {
     const response = await fetchWithToken(`${API_BASE_URL}/admin/users/${userId}`);
     return handleResponse(response);
   },
+  getUserByIdManagerial: async (userId: string) => {
+    const response = await fetchWithToken(`${API_BASE_URL}/managerial/users/${userId}`);
+    return handleResponse(response);
+  },
 
   // Create new user
 createUser: async (userData: Partial<User> | FormData) => {
@@ -85,7 +89,7 @@ createUser: async (userData: Partial<User> | FormData) => {
 
   // Delete user
   deleteUser: async (userId: string) => {
-    const response = await fetchWithToken(`${API_BASE_URL}/users/${userId}`, {
+    const response = await fetchWithToken(`${API_BASE_URL}/admin/users/${userId}`, {
       method: 'DELETE',
     });
     return handleResponse(response);
@@ -147,9 +151,26 @@ createUser: async (userData: Partial<User> | FormData) => {
 // // ============ LEAVE SERVICES ============
 export const leaveServices = {
   // Get all leave requests
-  getAllLeaves: async () => {
+  getReqAllLeaves: async () => {
     try {
       const response = await fetchWithToken(`${API_BASE_URL}/cuti`,);
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Failed to fetch leaves: ${text}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching leaves:', error);
+      throw error;
+    }
+  },
+
+  getAllLeaves: async () => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/cuti/all`,);
 
       if (!response.ok) {
         const text = await response.text();
@@ -307,7 +328,7 @@ export const reimburseServices = {
   // Request reimbursement
   requestReimburse: async (reimburseData: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/reimburses`, {
+      const response = await fetch(`${API_BASE_URL}/reimburse`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

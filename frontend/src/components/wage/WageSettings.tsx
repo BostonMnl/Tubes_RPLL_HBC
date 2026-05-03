@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Card, Table, Button, Spinner, Alert } from 'react-bootstrap';
 import WageDetail from './WageDetail';
 import { userServices } from '../../services/apiServices';
+import { getUser } from '../../utils/tokenManager';
 
 type Employee = {
   id: string;
   name: string;
   role: string;
   jabatan: string;
+  departemen: string;
 };
 
 export default function WageSettings() {
@@ -16,28 +18,42 @@ export default function WageSettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await userServices.getAllUsers();
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const res = await userServices.getAllUsers();
 
-        const mapped = res.data.user.map((user: any) => ({
-          id: user.user_id,
-          name: user.nama,
-          role: user.role,
-          jabatan: user.jabatan,
-        }));
+      const loggedUser = getUser(); // 🔥 ambil user dari localStorage
 
-        setEmployees(mapped);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      const mapped = res.data.user.map((user: any) => ({
+        id: user.user_id,
+        name: user.nama,
+        role: user.role,
+        jabatan: user.jabatan,
+        departemen: user.departemen,
+      }));
+
+      // 🔥 FILTER LOGIC
+      let filtered = mapped;
+
+      if (loggedUser?.role !== 'admin') {
+        // kalau bukan admin → filter berdasarkan departemen
+        filtered = mapped.filter(
+          (u: any) => u.departemen === loggedUser?.departemen
+        );
       }
-    };
 
-    fetchUsers();
-  }, []);
+      setEmployees(filtered);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchUsers();
+}, []);
 
   if (selected) {
     return (
@@ -94,6 +110,7 @@ export default function WageSettings() {
                   <th>Name</th>
                   <th>Role</th>
                   <th>Jabatan</th>
+                  <th>Departemen</th>
                   <th></th>
                 </tr>
               </thead>
@@ -107,8 +124,9 @@ export default function WageSettings() {
                   >
                     <td>{i + 1}</td>
                     <td style={{ fontWeight: 500 }}>{emp.name}</td>
-                    <td>{emp.role}</td>
-                    <td>{emp.jabatan}</td>
+                    <td>{emp.role.toUpperCase()}</td>
+                    <td>{emp.jabatan.toUpperCase()}</td>
+                    <td>{emp.departemen.toUpperCase()}</td>
                     <td className="text-end">
                       <Button
                         size="sm"

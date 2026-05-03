@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { Card, Table, Button, Badge } from 'react-bootstrap';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
 import UserDetail from './UserDetail';
+import { userServices } from '../../services/apiServices';
+import { getUser } from '../../utils/tokenManager';
 
 type UserListItem = {
   user_id: string;
@@ -11,78 +13,48 @@ type UserListItem = {
   departemen: string;
 };
 
-// ✅ Data dummy
-const dummyUsers: UserListItem[] = [
-  {
-    user_id: '1',
-    nama: 'Budi Santoso',
-    email: 'budi@company.com',
-    jabatan: 'staff',
-    role: 'staff',
-    departemen: 'IT',
-  },
-  {
-    user_id: '2',
-    nama: 'Siti Rahayu',
-    email: 'siti@company.com',
-    jabatan: 'staff',
-    role: 'staff',
-    departemen: 'IT',
-  },
-  {
-    user_id: '3',
-    nama: 'Andi Wijaya',
-    email: 'andi@company.com',
-    jabatan: 'supervisor',
-    role: 'staff',
-    departemen: 'IT',
-  },
-  {
-    user_id: '4',
-    nama: 'Dewi Lestari',
-    email: 'dewi@company.com',
-    jabatan: 'staff',
-    role: 'staff',
-    departemen: 'IT',
-  },
-  {
-    user_id: '5',
-    nama: 'Rizky Pratama',
-    email: 'rizky@company.com',
-    jabatan: 'staff',
-    role: 'staff',
-    departemen: 'IT',
-  },
-];
-
 const renderJabatan = (jabatan: string) => {
   if (jabatan === 'manager') return <Badge bg="danger">Manager</Badge>;
   if (jabatan === 'supervisor') return <Badge bg="warning" text="dark">Supervisor</Badge>;
   return <Badge bg="secondary">Staff</Badge>;
 };
 
-export default function UserPageManager() {
+export default function UserPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [users, setUsers] = useState<UserListItem[]>(dummyUsers);
+  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // ✅ Callback dari UserDetail kalau ada promote berhasil
-  // Update data dummy lokal supaya badge jabatan ikut berubah
-  const handlePromoteSuccess = (userId: string) => {
-    setUsers(prev =>
-      prev.map(u =>
-        u.user_id === userId ? { ...u, jabatan: 'manager' } : u
-      )
-    );
-  };
+  const fetchUsers = useCallback(async () => {
+    setPageLoading(true);
+    setError('');
+
+    try {
+      const currentUser = getUser(); 
+      if (!currentUser) throw new Error('User tidak ditemukan');
+      
+      const response = await userServices.getAllUsers();
+      const userList = response.data?.user;
+      
+      const filteredUsers = userList.filter(
+        (u: UserListItem) => u.departemen === currentUser.departemen
+      );
+      
+      console.log(filteredUsers)
+      setUsers(filteredUsers);
+    } catch (err: any) {
+      setError(err.message || 'Gagal memuat data user');
+    } finally {
+      setPageLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   if (selectedId) {
-    return (
-      <UserDetail
-        userId={selectedId}
-        goBack={() => setSelectedId(null)}
-        onPromoteSuccess={() => handlePromoteSuccess(selectedId)}
-      />
-    );
+    return <UserDetail userId={selectedId} goBack={() => setSelectedId(null)} />;
   }
 
   return (
@@ -98,18 +70,14 @@ export default function UserPageManager() {
           color: 'white',
         }}
       >
-        <div>
-          <h3 className="mb-1">User Management</h3>
-          <small>Lihat data karyawan di departemen Anda</small>
-        </div>
+        <h3>User Management</h3>
+        <small>Hanya menampilkan user dalam departemen Anda</small>
       </Card>
 
       {/* TABLE */}
       <Card className="p-4 shadow-sm" style={{ borderRadius: '16px', border: 'none' }}>
-        <h5 className="mb-3" style={{ color: '#ff3d7f' }}>User List</h5>
-
-        <Table hover className="mt-3 align-middle">
-          <thead style={{ background: '#ffe4ec' }}>
+        <Table hover className="align-middle">
+          <thead>
             <tr>
               <th>Nama</th>
               <th>Email</th>
@@ -118,32 +86,42 @@ export default function UserPageManager() {
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.user_id}>
-                <td style={{ fontWeight: 500 }}>{u.nama}</td>
-                <td>{u.email}</td>
-                <td>{renderJabatan(u.jabatan)}</td>
-                <td>{u.departemen}</td>
-                <td className="text-end">
-                  <Button
-                    size="sm"
-                    style={{
-                      background: '#ffc0cb',
-                      border: 'none',
-                      borderRadius: '8px',
-                    }}
-                    onClick={() => setSelectedId(u.user_id)}
-                  >
-                    Detail
-                  </Button>
+
+          {pageLoading ? (
+            <tbody>
+              <tr>
+                <td colSpan={5} className="text-center">
+                  <Spinner />
                 </td>
               </tr>
-            ))}
-          </tbody>
+            </tbody>
+          ) : error ? (
+            <tbody>
+              <tr>
+                <td colSpan={5}>
+                  <Alert variant="danger">{error}</Alert>
+                </td>
+              </tr>
+            </tbody>
+          ) : (
+            <tbody>
+              {users.map(u => (
+                <tr key={u.user_id}>
+                  <td>{u.nama}</td>
+                  <td>{u.email}</td>
+                  <td>{renderJabatan(u.jabatan)}</td>
+                  <td>{u.departemen}</td>
+                  <td className="text-end">
+                    <Button size="sm" onClick={() => setSelectedId(u.user_id)}>
+                      Detail
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          )}
         </Table>
       </Card>
-
     </div>
   );
 }

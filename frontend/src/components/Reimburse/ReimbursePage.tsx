@@ -21,9 +21,6 @@ export default function ReimbursePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // =========================
-  // FETCH DATA
-  // =========================
   const fetchReimburse = async () => {
     try {
       setLoading(true);
@@ -52,9 +49,6 @@ export default function ReimbursePage() {
 
   const display = (val: any) => (val ? val : '-');
 
-  // =========================
-  // UPDATE STATUS (API)
-  // =========================
   const updateStatus = async (id: string, status: string) => {
     try {
       await reimburseServices.updateReimburseStatus(id, status);
