@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { User } from '../../models/user';
 import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
-import { UUIDV4 } from 'sequelize';
+import { UUIDV4, Op } from 'sequelize';
 import { DEPARTEMEN_VALUES, isStrongPassword, JABATAN_VALUES, ROLE_VALUES } from '../utils/helper.js';
 
 type AuthenticatedRequest = Request & {
@@ -229,47 +229,46 @@ export const getAllUsers = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    const user = await User.findAll({
-        attributes: ['user_id', 'nama', 'email', 'jabatan', 'role', 'departemen', 'manager_id'],
+    if (req.auth.role === 'admin') {
+        const user = await User.findAll({
+            attributes: ['user_id', 'nama', 'email', 'jabatan', 'role', 'departemen', 'manager_id'],
+        });
+
+        return {
+            code: 200,
+            message: 'All users profile fetched successfully',
+            data: { user },
+        };
+    }
+
+    const actor = await User.findByPk(req.auth.id, {
+        attributes: ['jabatan', 'departemen'],
     });
 
+    if (!actor || actor.deletedAt) {
+        throw { code: 401, message: 'Unauthorized' };
+    }
+
+    let allowedJabatan: string[] = [];
+    if (actor.jabatan === 'manager') {
+        allowedJabatan = ['staff'];
+    } else if (actor.jabatan === 'supervisor') {
+        allowedJabatan = ['staff', 'manager'];
+    } else {
+        throw { code: 403, message: 'Forbidden: insufficient wewenang' };
+    }
+
+    const user = await User.findAll({
+        where: {
+            departemen: actor.departemen,
+            jabatan: { [Op.in]: allowedJabatan },
+        },
+        attributes: ['user_id', 'nama', 'email', 'jabatan', 'role', 'departemen', 'manager_id'],
+    });
 
     return {
         code: 200,
         message: 'All users profile fetched successfully',
-        data: { user },
-    };
-};
-
-export const getProfileId = async (
-    req: AuthenticatedRequest,
-    _res: Response
-): Promise<ApiResponse<{ user: User }>> => {
-    if (!req.auth?.id) {
-        throw { code: 401, message: 'Unauthorized' };
-    }
-
-    const actor = req.auth;
-
-    const id = getParamId(req);
-
-    const actorUser = await User.findByPk(actor.id, { attributes: ['jabatan'] });
-
-    if (actorUser?.jabatan === 'staff' && actor.id !== id) {
-        throw { code: 403, message: 'Forbidden' };
-    }
-
-    const user = await User.findByPk(id, {
-        attributes: ['nama', 'email', 'alamat', 'tanggal_lahir', 'nomor_telepon', 'gambar', 'jabatan', 'role', 'departemen', 'manager_id'],
-    });
-
-    if (!user || user.deletedAt) {
-        throw { code: 404, message: 'User not found' };
-    }
-
-    return {
-        code: 200,
-        message: 'User profile fetched successfully',
         data: { user },
     };
 };

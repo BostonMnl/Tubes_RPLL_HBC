@@ -3,7 +3,7 @@ import { User } from './user';
 
 @Table({
     tableName: 'absensi',
-    timestamps: false,
+    timestamps: true,
 })
 export class Absensi extends Model {
     @Column({
@@ -50,6 +50,12 @@ export class Absensi extends Model {
         allowNull: false,
     })
     declare user_id: string;
+
+    @Column({
+        type: DataType.DATE,
+        allowNull: true,
+    })
+    declare createdAt: Date | null;
 
     @Column({
         type: DataType.DATE,
