@@ -2,30 +2,51 @@ import { useState, useEffect } from 'react';
 import { Card, Button, Row, Col, Table, Badge, Alert, Spinner } from 'react-bootstrap';
 import dummny from '../../../public/dummy.jpg';
 import { userServices } from '../../services/apiServices';
+import { getUser } from '../../utils/tokenManager';
 
 type Props = {
   userId: string;
   goBack: () => void;
   onPromoteSuccess?: () => void;
 };
+type Jabatan = 'staff' | 'manager' | 'supervisor';
+
+type User = {
+  user_id: string;
+  nama: string;
+  email: string;
+  jabatan: Jabatan;
+  role: string;
+  departemen: string;
+  nomor_telepon?: string;
+  tanggal_lahir?: string;
+  alamat?: string;
+  gambar?: string;
+};
 
 export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) {
-  const [form, setForm] = useState<any>(null);
+  const [form, setForm] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  const currentUser = getUser();
+
   const display = (val: any) => (val ? val : '-');
 
-  // 🔥 FETCH USER BY ID
+  const NEXT_JABATAN: Record<Jabatan, Jabatan | null> = {
+    staff: 'manager',
+    manager: 'supervisor',
+    supervisor: null,
+  };
+
+  // 🔥 fetch user
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
       try {
         const res = await userServices.getUserByIdManagerial(userId);
-
         const userData = res.data?.user ?? res.user ?? res;
-
         setForm(userData);
       } catch (err) {
         console.error('Gagal ambil user detail', err);
@@ -41,23 +62,59 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
     ? `http://localhost:3000${form.gambar}`
     : dummny;
 
-  // 🔥 PROMOTE (masih lokal / bisa diganti API)
+  // 🔥 cek apakah boleh promote
+  const canPromote = () => {
+    if (!form || !currentUser) return false;
+
+    if (currentUser.jabatan === 'manager') {
+      return form.jabatan === 'staff';
+    }
+
+    if (currentUser.jabatan === 'supervisor') {
+      return form.jabatan === 'staff' || form.jabatan === 'manager';
+    }
+
+    return false;
+  };
+
+  // 🔥 target jabatan
+  const getNextJabatan = () => {
+    if (!form) return null;
+    return NEXT_JABATAN[form.jabatan];
+  };
+
+  // 🔥 PROMOTE
   const handlePromote = async () => {
-    if (!window.confirm(`Yakin ingin menaikkan jabatan ${form?.nama} menjadi Manager?`)) return;
+    const nextJabatan = getNextJabatan();
+    if (!nextJabatan) return;
+
+    if (!window.confirm(`Naikkan ${form?.nama} ke ${nextJabatan}?`)) return;
 
     setSaveLoading(true);
     setSaveError('');
 
     try {
-      // kalau sudah ada API:
-      // await userServices.promoteUser(userId);
+      let payload: any = {
+        jabatan: nextJabatan,
+      };
 
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if (nextJabatan === 'manager') {
+        payload.manager_id = currentUser.user_id;
+      }
 
-      setForm((prev: any) => ({ ...prev, jabatan: 'manager' }));
+      if (nextJabatan === 'supervisor') {
+        payload.manager_id = null;
+      }
+      console.log(currentUser.jabatan)
+
+      await userServices.promoteUser(userId, {
+        jabatan: nextJabatan,
+      });
+
+      setForm(prev => prev ? { ...prev, jabatan: nextJabatan } : prev);
 
       onPromoteSuccess?.();
-      alert(`${form?.nama} berhasil dinaikkan menjadi Manager!`);
+      alert(`${form?.nama} berhasil naik ke ${nextJabatan}!`);
     } catch (err) {
       setSaveError('Gagal promote jabatan');
     } finally {
@@ -71,7 +128,6 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
     return <Badge bg="danger">Cuti</Badge>;
   };
 
-  // 🔥 LOADING UI
   if (loading) {
     return (
       <div className="text-center mt-5">
@@ -126,7 +182,7 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
               <Col md={6}>
                 <p><b>Email</b><br />{display(form?.email)}</p>
                 <p><b>Nomor Telp</b><br />{display(form?.nomor_telepon)}</p>
-                <p><b>Tanggal Lahir</b><br />{display(form?.tanggal_lahir)}</p>
+                <p><b>Tanggal Lahir</b><br />{display(form?.tanggal_lahir?.split('T')[0] ?? '')}</p>
               </Col>
               <Col md={6}>
                 <p><b>Alamat</b><br />{display(form?.alamat)}</p>
@@ -137,14 +193,15 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
 
             {saveError && <Alert variant="danger">{saveError}</Alert>}
 
-            {/* PROMOTE */}
-            {form?.jabatan === 'staff' ? (
+            {/* 🔥 PROMOTE SECTION */}
+            {canPromote() ? (
               <div className="mt-3 p-3" style={{ background: '#fff0f3', borderRadius: 12 }}>
                 <p className="mb-1 fw-semibold" style={{ color: '#ff3d7f' }}>
                   Promosi Jabatan
                 </p>
+
                 <p className="mb-3 text-muted" style={{ fontSize: 13 }}>
-                  Naikkan jabatan <b>{form?.nama}</b> ke Manager
+                  Naikkan <b>{form?.nama}</b> ke <b>{getNextJabatan()}</b>
                 </p>
 
                 <Button
@@ -157,13 +214,13 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
                     borderRadius: 8,
                   }}
                 >
-                  {saveLoading ? 'Memproses...' : '⬆ Naikkan ke Manager'}
+                  {saveLoading ? 'Memproses...' : `⬆ Naik ke ${getNextJabatan()}`}
                 </Button>
               </div>
             ) : (
               <div className="mt-3 p-3" style={{ background: '#f0fff4', borderRadius: 12 }}>
                 <p className="mb-0 text-muted" style={{ fontSize: 13 }}>
-                  Jabatan sudah <b>{form?.jabatan}</b>
+                  Tidak ada aksi promosi
                 </p>
               </div>
             )}
@@ -171,7 +228,7 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
         </Row>
       </Card>
 
-      {/* ABSENSI (dummy tetap boleh) */}
+      {/* ABSENSI */}
       <Card className="p-4 shadow-sm" style={{ borderRadius: 16, border: 'none' }}>
         <h5 style={{ color: '#ff3d7f' }}>Log Absensi</h5>
 

@@ -313,7 +313,7 @@ export default function CalendarView() {
               ) : (
                 leaveRequests.map(item => (
                   <tr key={item.id}>
-                    <td className="fw-semibold">{item.nama}</td>
+                    <td className="fw-semibold">{item.nama.toUpperCase()}</td>
                     <td>
                       <Badge style={{ background: '#fff0f3', color: '#ffffff', fontWeight: 500 }}>
                         {renderJenisCuti(item.jenis_cuti)}
@@ -397,7 +397,7 @@ export default function CalendarView() {
               ) : (
                 allLeave.map(item => (
                   <tr key={item.id}>
-                    <td className="fw-semibold">{item.nama}</td>
+                    <td className="fw-semibold">{item.nama.toUpperCase()}</td>
                     <td>
                       <Badge style={{ background: '#fff0f3', color: '#ffffff', fontWeight: 500 }}>
                         {renderJenisCuti(item.jenis_cuti)}
