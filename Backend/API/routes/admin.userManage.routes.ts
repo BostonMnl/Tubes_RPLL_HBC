@@ -4,7 +4,7 @@ import {
     resetPassword,
     getProfileId,
     updateProfileById,
-    getUsersProfile,
+    getAllUsers,
     deleteUser,
 } from '../controllers/admin.userManage.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
@@ -13,7 +13,7 @@ import { uploadImage } from '../utils/uploadUtils';
 
 const router = Router();
 
-router.get('/users', authMiddleware(), apiResponse(getUsersProfile));
+router.get('/users', authMiddleware(), apiResponse(getAllUsers));
 router.post('/users', authMiddleware(['admin']), uploadImage.single('gambar'), apiResponse(createUser));
 router.patch('/users/reset/:id', authMiddleware(['admin']), apiResponse(resetPassword));
 router.get('/users/:id', authMiddleware(['admin']), apiResponse(getProfileId));

@@ -218,7 +218,7 @@ export const resetPassword = async (
     };
 };
 
-export const getUsersProfile = async (
+export const getAllUsers = async (
     req: AuthenticatedRequest,
     _res: Response
 ): Promise<ApiResponse<{ user: User[] }>> => {
@@ -227,7 +227,7 @@ export const getUsersProfile = async (
     }
 
     const user = await User.findAll({
-        attributes: ['user_id', 'nama', 'email','jabatan', 'role'],
+        attributes: ['user_id', 'nama', 'email','jabatan', 'role', 'departemen', 'manager_id'],
     });
 
 
