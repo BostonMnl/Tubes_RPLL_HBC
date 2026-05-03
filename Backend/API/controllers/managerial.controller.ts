@@ -121,7 +121,7 @@ export const promoteUser = async (
 	if (to === 'manager') {
 		target.manager_id = actorUser.manager_id
 	}else {
-		target.manager_id = null;
+		target.manager_id = '';
 	};
 
 	target.jabatan = to;

@@ -85,7 +85,7 @@ export class User extends Model {
         type : DataType.UUID,
         allowNull : true
     })
-    declare manager_id : string | null;
+    declare manager_id : string;
 
     @BelongsTo(() => User)
     declare manager: User;

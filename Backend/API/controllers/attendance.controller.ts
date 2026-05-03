@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import Redis from 'ioredis';
+import NodeCache from 'node-cache';
 import { Absensi } from 'models/absensi';
 import { ApiResponse } from '../middlewares/response.middleware';
 
@@ -12,10 +12,9 @@ type AuthenticatedRequest = Request & {
   };
 };
 
-const redis = new Redis();
-
 const QR_TTL = 60; // seconds
 const QR_KEY = 'attendance:current_qr';
+const cache = new NodeCache({ stdTTL: QR_TTL, checkperiod: Math.max(1, Math.floor(QR_TTL / 2)) });
 
 const padTwo = (value: number): string => String(value).padStart(2, '0');
 
@@ -28,7 +27,7 @@ const getLocalDateTime = (): { date: string; time: string } => {
 
 export const generateNewQR = async (): Promise<string> => {
   const token = uuidv4();
-  await redis.set(QR_KEY, token, 'EX', QR_TTL);
+  cache.set(QR_KEY, token, QR_TTL);
   console.log('NEW QR:', token);
   return token;
 };
@@ -41,7 +40,7 @@ export const getCurrentQr = async (
   _req: Request,
   _res: Response
 ): Promise<ApiResponse<{ qr_token: string; expires_in: number }>> => {
-  const qr = await redis.get(QR_KEY);
+  const qr = cache.get<string>(QR_KEY);
 
   if (!qr) {
     const newQr = await generateNewQR();
@@ -74,20 +73,20 @@ export const scanAttendance = async (
   }
 
 
-  const currentQR = await redis.get(QR_KEY);
+  const currentQR = cache.get<string>(QR_KEY);
 
   if (!currentQR || qr_token !== currentQR) {
     throw { code: 400, message: 'Invalid or expired QR' };
   }
 
   const usedKey = `attendance:used:${qr_token}`;
-  const isUsed = await redis.get(usedKey);
+  const isUsed = cache.get<string>(usedKey);
 
   if (isUsed) {
     throw { code: 400, message: 'QR already used' };
   }
 
-  await redis.set(usedKey, '1', 'EX', QR_TTL);
+  cache.set(usedKey, '1', QR_TTL);
 
   const { date, time } = getLocalDateTime();
   const attendance = await Absensi.create({
