@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { User } from '../../models/user';
 import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
-import { UUIDV4, Op } from 'sequelize';
+import { UUIDV4 } from 'sequelize';
 import { DEPARTEMEN_VALUES, isStrongPassword, JABATAN_VALUES, ROLE_VALUES } from '../utils/helper.js';
 
 type AuthenticatedRequest = Request & {
@@ -229,42 +229,10 @@ export const getAllUsers = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    if (req.auth.role === 'admin') {
-        const user = await User.findAll({
-            attributes: ['user_id', 'nama', 'email', 'jabatan', 'role', 'departemen', 'manager_id'],
-        });
-
-        return {
-            code: 200,
-            message: 'All users profile fetched successfully',
-            data: { user },
-        };
-    }
-
-    const actor = await User.findByPk(req.auth.id, {
-        attributes: ['jabatan', 'departemen'],
-    });
-
-    if (!actor || actor.deletedAt) {
-        throw { code: 401, message: 'Unauthorized' };
-    }
-
-    let allowedJabatan: string[] = [];
-    if (actor.jabatan === 'manager') {
-        allowedJabatan = ['staff'];
-    } else if (actor.jabatan === 'supervisor') {
-        allowedJabatan = ['staff', 'manager'];
-    } else {
-        throw { code: 403, message: 'Forbidden: insufficient wewenang' };
-    }
-
     const user = await User.findAll({
-        where: {
-            departemen: actor.departemen,
-            jabatan: { [Op.in]: allowedJabatan },
-        },
         attributes: ['user_id', 'nama', 'email', 'jabatan', 'role', 'departemen', 'manager_id'],
     });
+
 
     return {
         code: 200,
