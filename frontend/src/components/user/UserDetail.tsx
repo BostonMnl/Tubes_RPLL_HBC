@@ -34,7 +34,6 @@ export default function UserDetail({ userId, goBack }: Props) {
   const [saveError, setSaveError] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // ✅ State untuk modal reset password
   const [showResetModal, setShowResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

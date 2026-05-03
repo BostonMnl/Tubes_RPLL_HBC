@@ -1,9 +1,7 @@
 import { Row, Col, Card } from 'react-bootstrap';
 import CalendarView from './leave/CalendarView';
-import ManagementTree from './ManagementTree';
 
 export default function ManagerDashboard() {
-  // dummy data (nanti ganti dari API)
   const totalCuti = 12;
   const pendingReimburse = 4;
   const teamSize = 8;

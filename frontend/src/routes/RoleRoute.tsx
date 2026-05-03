@@ -14,7 +14,6 @@ export default function RoleRoute({
   const { user } = useAuth();
 
   if (!user) return <Navigate to="/" />;
-  console.log("jabatan", user.jabatan)
 
   const normalize = (val?: string) => val?.toLowerCase().trim();
   const roleOk = allowRole
