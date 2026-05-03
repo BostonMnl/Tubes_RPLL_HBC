@@ -100,7 +100,8 @@ export default function UserPage() {
       formData.append('jabatan', newUser.jabatan);
       formData.append('role', newUser.role);
       formData.append('departemen', newUser.departemen);
-      formData.append('manager_id', newUser.manager_id ?? '');
+      console.log(newUser.manager_id)
+      if (newUser.manager_id != '') formData.append('manager_id', newUser.manager_id);
 
       if (imageFile) formData.append('gambar', imageFile, imageFile.name);
 
@@ -201,8 +202,8 @@ export default function UserPage() {
               ) : (
                 users.map(u => (
                   <tr key={u.user_id}>
-                    <td style={{ fontWeight: 500 }}>{u.nama}</td>
-                    <td>{u.email}</td>
+                    <td style={{ fontWeight: 500 }}>{u.nama.toUpperCase()}</td>
+                    <td>{u.email.toUpperCase()}</td>
                     <td>{u.jabatan.toUpperCase()}</td>
                     <td>{u.departemen}</td>
                     <td className="text-end">
@@ -350,7 +351,7 @@ export default function UserPage() {
                   Belum ada user dengan jabatan Manager atau Supervisor
                 </div>
               ) : (
-                <Form.Select name="manager_id" onChange={handleChange} value={newUser.manager_id ?? ''}>
+                <Form.Select name="manager_id" onChange={handleChange} value={newUser.manager_id}>
                   <option value="">— Tidak ada / Pilih nanti —</option>
                   {managerList.map(m => (
                     <option key={m.user_id} value={m.user_id}>

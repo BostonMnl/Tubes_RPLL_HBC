@@ -123,7 +123,7 @@ useEffect(() => {
                     }}
                   >
                     <td>{i + 1}</td>
-                    <td style={{ fontWeight: 500 }}>{emp.name}</td>
+                    <td style={{ fontWeight: 500 }}>{emp.name.toUpperCase()}</td>
                     <td>{emp.role.toUpperCase()}</td>
                     <td>{emp.jabatan.toUpperCase()}</td>
                     <td>{emp.departemen.toUpperCase()}</td>

@@ -101,6 +101,15 @@ export const userServices = {
       body: JSON.stringify(body),
     }).then(handleResponse);
   },
+
+  promoteUser: async (userId: string, body: { jabatan: string }) => {
+    return fetchWithToken(`${API_BASE_URL}/managerial/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }).then(handleResponse);
+  },
+
+
 };
 
 // // ============ ATTENDANCE SERVICES ============
