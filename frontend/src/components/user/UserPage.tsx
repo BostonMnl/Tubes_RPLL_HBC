@@ -7,10 +7,10 @@ import type { User } from '../../model/User';
 
 type UserListItem = Pick<User, 'user_id' | 'nama' | 'email' | 'jabatan' | 'role' | 'departemen'>;
 
-type UserFormData = Omit<User, 'gambar' | 'manager_id'> & {
+type UserFormData = Omit<User, 'gambar' > & {
   password: string;
   gambar?: string;
-  manager_email?: string;
+
 };
 
 const initialFormState: UserFormData = {
@@ -25,7 +25,7 @@ const initialFormState: UserFormData = {
   tanggal_lahir: '',
   password: '',
   gambar: '',
-  manager_email: '',
+  manager_id: '',
 };
 
 export default function UserPage() {
@@ -100,7 +100,7 @@ export default function UserPage() {
       formData.append('jabatan', newUser.jabatan);
       formData.append('role', newUser.role);
       formData.append('departemen', newUser.departemen);
-      formData.append('manager_email', newUser.manager_email ?? '');
+      formData.append('manager_id', newUser.manager_id ?? '');
 
       if (imageFile) formData.append('gambar', imageFile, imageFile.name);
 
@@ -350,10 +350,10 @@ export default function UserPage() {
                   Belum ada user dengan jabatan Manager atau Supervisor
                 </div>
               ) : (
-                <Form.Select name="manager_email" onChange={handleChange} value={newUser.manager_email ?? ''}>
+                <Form.Select name="manager_id" onChange={handleChange} value={newUser.manager_id ?? ''}>
                   <option value="">— Tidak ada / Pilih nanti —</option>
                   {managerList.map(m => (
-                    <option key={m.user_id} value={m.email}>
+                    <option key={m.user_id} value={m.user_id}>
                       {m.nama} ({m.jabatan} · {m.departemen})
                     </option>
                   ))}
