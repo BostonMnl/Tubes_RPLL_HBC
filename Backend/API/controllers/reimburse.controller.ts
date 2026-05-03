@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
 import { ApiResponse } from '../middlewares/response.middleware';
 import { Reimburse } from 'models/reimburse';
-import { Op } from 'sequelize';
-import console from 'console';
+import { User } from 'models/user';
 
 type AuthenticatedRequest = Request & {
     auth?: {
         id: string;
         role: string;
+        jabatan?: string;
     };
 };
 
@@ -21,6 +21,113 @@ const getParamId = (req: Request, fieldName: string = 'id'): string => {
     return id;
 };
 
+const validateReimbursePayload = (body: any, file?: Express.Multer.File, isUpdate = false): any => {
+    const { user_id, nominal, tanggal, keterangan, gambar } = body;
+    const payload: any = {};
+
+    if (user_id !== undefined || !isUpdate) {
+        if (!user_id || typeof user_id !== 'string' || !user_id.trim()) {
+            throw { code: 400, message: 'User id is required' };
+        }
+        payload.user_id = user_id;
+    }
+
+    if (nominal !== undefined || !isUpdate) {
+        if (!nominal) {
+            throw { code: 400, message: 'Nominal is required'};
+        }
+        const nominalNum = Number(nominal);
+        if (isNaN(nominalNum) || nominalNum <= 0) {
+            throw { code: 400, message: 'Nominal must be a valid positive number' };
+        }
+        payload.nominal = nominalNum;
+    }
+
+    if (tanggal !== undefined || !isUpdate) {
+        if (!tanggal || typeof tanggal !== 'string' || !tanggal.trim() || isNaN(Date.parse(tanggal))) {
+            throw { code: 400, message: 'Valid tanggal is required' };
+        }
+        payload.tanggal = new Date(tanggal);
+    }
+
+    if (keterangan !== undefined) {
+        payload.keterangan = keterangan;
+    }
+
+    const gambarFromFile = file ? `/uploads/${file.filename}` : undefined;
+    if (gambarFromFile) {
+        payload.gambar = gambarFromFile;
+    } else if (gambar !== undefined) {
+        payload.gambar = gambar;
+    }
+
+    // if (!isUpdate && !payload.gambar) {
+    //     throw { code: 400, message: 'Gambar is required either as a file upload or a string URL' };
+    // }
+
+    return payload;
+};
+
+const fetchReimburseList = async (whereClause: any): Promise<Reimburse[]> => {
+    return await Reimburse.findAll({
+        where: whereClause,
+        order: [['createdAt', 'DESC']],
+        include: [{ model: User, attributes: ['user_id', 'nama', 'jabatan', 'role'] }]
+    });
+};
+
+const checkApprovalHierarchy = (requesterJabatan: string, approverJabatan: string, approverRole: string, isSelf: boolean): void => {
+    const reqJabatan = requesterJabatan.toLowerCase();
+    const appJabatan = approverJabatan.toLowerCase();
+    const appRole = approverRole.toLowerCase();
+
+    if (appRole === 'admin') return;
+
+    if (isSelf && appJabatan === 'supervisor') {
+        return; // Supervisor can approve their own request
+    }
+
+    if (isSelf) {
+        throw { code: 403, message: 'Forbidden: You cannot approve your own request' };
+    }
+
+    if (reqJabatan === 'staff') {
+        if (!['manager', 'supervisor'].includes(appJabatan)) {
+            throw { code: 403, message: 'Forbidden: Only Manager or Supervisor can process Staff requests' };
+        }
+    } else if (reqJabatan === 'manager') {
+        if (appJabatan !== 'supervisor') {
+            throw { code: 403, message: 'Forbidden: Only Supervisor can process Manager requests' };
+        }
+    } else if (reqJabatan === 'supervisor') {
+        throw { code: 403, message: 'Forbidden: Supervisor requests require Admin approval' };
+    } else {
+        throw { code: 400, message: 'Invalid requester jabatan' };
+    }
+};
+
+const checkUpdateDeleteHierarchy = (targetJabatan: string, actorJabatan: string, actorRole: string, isSelf: boolean): void => {
+    const actJabatan = actorJabatan.toLowerCase();
+    const actRole = actorRole.toLowerCase();
+    const tarJabatan = targetJabatan.toLowerCase();
+
+    if (actRole === 'admin') return;
+
+    if (isSelf) return;
+
+    if (tarJabatan === 'staff') {
+        if (!['manager', 'supervisor'].includes(actJabatan)) {
+            throw { code: 403, message: 'Forbidden: Only Manager or Supervisor can manage Staff records' };
+        }
+    } else if (tarJabatan === 'manager') {
+        if (actJabatan !== 'supervisor') {
+            throw { code: 403, message: 'Forbidden: Only Supervisor can manage Manager records' };
+        }
+    } else {
+        throw { code: 403, message: 'Forbidden: Insufficient hierarchy permissions' };
+    }
+};
+
 export const createMyReimburseRequest = async (
     req: AuthenticatedRequest,
     _res: Response
@@ -28,28 +135,23 @@ export const createMyReimburseRequest = async (
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
-    const { nominal, tanggal } = req.body;
 
-    if (typeof nominal !== 'number' || nominal <= 0) {
-        throw { code: 400, message: 'Nominal must be a positive number' };
-    }
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    
+    // Auto-approve logic for Supervisor
+    const status = req.auth.jabatan?.toLowerCase() === 'supervisor' ? 'Approved' : 'Pending';
 
-    if (!tanggal || isNaN(Date.parse(tanggal))) {
-        throw { code: 400, message: 'Valid tanggal is required' };
-    }
+    const payload = validateReimbursePayload({ ...req.body, user_id: req.auth.id }, file, false);
+    payload.status = status;
+
+    const reimburse = await Reimburse.create(payload);
 
     return {
-        data: {
-            reimburse: await Reimburse.create({
-                user_id: req.auth.id,
-                nominal,
-                tanggal,
-            }),
-        },
+        data: { reimburse },
         code: 201,
         message: 'Reimburse request created successfully',
     };
-}
+};
 
 export const createReimburseRequestForUser = async (
     req: AuthenticatedRequest,
@@ -58,28 +160,69 @@ export const createReimburseRequestForUser = async (
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
-    const { user_id, nominal, tanggal } = req.body;
 
-    if (typeof nominal !== 'number' || nominal <= 0) {
-        throw { code: 400, message: 'Nominal must be a positive number' };
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    const payload = validateReimbursePayload(req.body, file, false);
+
+    const targetUser = await User.findByPk(payload.user_id);
+    if (!targetUser) {
+        throw { code: 404, message: 'Target user not found' };
     }
 
-    if (!tanggal || isNaN(Date.parse(tanggal))) {
-        throw { code: 400, message: 'Valid tanggal is required' };
-    }
+    checkUpdateDeleteHierarchy(targetUser.jabatan, req.auth.jabatan || '', req.auth.role, false);
+
+    const reimburse = await Reimburse.create(payload);
 
     return {
-        data: {
-            reimburse: await Reimburse.create({
-                user_id,
-                nominal,
-                tanggal,
-            }),
-        },
+        data: { reimburse },
         code: 201,
         message: 'Reimburse request created successfully',
     };
-}
+};
+
+export const updateReimburseRequest = async (
+    req: AuthenticatedRequest,
+    _res: Response
+): Promise<ApiResponse<{ reimburse: Reimburse }>> => {
+    if (!req.auth?.id) {
+        throw { code: 401, message: 'Unauthorized' };
+    }
+
+    const id = getParamId(req);
+    
+    const reimburse = await Reimburse.findOne({
+        where: { reimburse_id: id },
+        include: [{ model: User, attributes: ['user_id', 'jabatan'] }]
+    });
+
+    if (!reimburse || !reimburse.user) {
+        throw { code: 404, message: 'Reimburse record not found' };
+    }
+    console.log('Nominal is missing in payload', reimburse);
+
+
+    if (reimburse.status !== 'Pending') {
+        throw { code: 400, message: 'Only pending reimburse requests can be updated' };
+    }
+
+    const isSelf = reimburse.user_id === req.auth.id;
+    checkUpdateDeleteHierarchy(reimburse.user.jabatan, req.auth.jabatan || '', req.auth.role, isSelf);
+
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    const payload = validateReimbursePayload(req.body, file, true);
+
+    if (Object.keys(payload).length === 0) {
+        throw { code: 400, message: 'At least one field must be provided for update' };
+    }
+
+    await reimburse.update(payload);
+
+    return {
+        data: { reimburse },
+        code: 200,
+        message: 'Reimburse request updated successfully'
+    };
+};
 
 export const getMyReimburse = async (
     req: AuthenticatedRequest,
@@ -89,16 +232,7 @@ export const getMyReimburse = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    const reimburse = await Reimburse.findAll({
-        where: { user_id: req.auth.id },
-        order: [['createdAt', 'DESC']],
-    });
-
-    for (const g of reimburse) {
-        if (g.deletedAt) {
-            throw { code: 404, message: 'Reimburse record not found' };
-        }
-    }
+    const reimburse = await fetchReimburseList({ user_id: req.auth.id });
 
     return {
         code: 200,
@@ -118,14 +252,14 @@ export const getReimburseById = async (
 
     const reimburse = await Reimburse.findOne({
         where: { reimburse_id: id },
+        include: [{ model: User, attributes: ['user_id', 'nama', 'jabatan', 'role'] }]
     });
 
-    if (!reimburse || reimburse.deletedAt) {
+    if (!reimburse) {
         throw { code: 404, message: 'Reimburse record not found' };
     }
 
-    // User can only view their own, but admin/manager can view any
-    if (req.auth.role === 'Staff' && reimburse.user_id !== req.auth.id) {
+    if (req.auth.role.toLowerCase() === 'staff' && reimburse.user_id !== req.auth.id) {
         throw { code: 403, message: 'Forbidden: You can only view your own reimburse requests' };
     }
 
@@ -144,7 +278,6 @@ export const getAllReimburseRequests = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    // Filter by status if provided (default: Pending)
     const { status } = req.query;
     const whereClause: any = {};
 
@@ -154,10 +287,7 @@ export const getAllReimburseRequests = async (
         whereClause.status = 'Pending';
     }
 
-    const reimburse = await Reimburse.findAll({
-        where: whereClause,
-        order: [['createdAt', 'DESC']],
-    });
+    const reimburse = await fetchReimburseList(whereClause);
 
     return {
         code: 200,
@@ -170,8 +300,8 @@ export const approveDeclineReimburseRequest = async (
     req: AuthenticatedRequest,
     _res: Response
 ): Promise<ApiResponse<{ reimburse: Reimburse }>> => {
-    if (!req.auth?.id) {
-        throw { code: 401, message: 'Unauthorized' };
+    if (!req.auth?.id || !req.auth?.jabatan) {
+        throw { code: 401, message: 'Unauthorized or Jabatan info missing' };
     }
 
     const id = getParamId(req);
@@ -184,25 +314,25 @@ export const approveDeclineReimburseRequest = async (
 
     const reimburse = await Reimburse.findOne({
         where: { reimburse_id: id },
+        include: [{ model: User, attributes: ['jabatan'] }]
     });
 
-    if (!reimburse || reimburse.deletedAt) {
-        throw { code: 404, message: 'Reimburse record not found or deleted' };
+    if (!reimburse || !reimburse.user) {
+        throw { code: 404, message: 'Reimburse record or associated user not found' };
     }
 
-    const pengajuanDate = new Date(reimburse.tanggal);
+    const isSelf = reimburse.user_id === req.auth.id;
+    checkApprovalHierarchy(reimburse.user.jabatan, req.auth.jabatan, req.auth.role, isSelf);
 
+    const pengajuanDate = new Date(reimburse.tanggal);
     const monthDiff = (currentDate.getFullYear() - pengajuanDate.getFullYear()) * 12 + (currentDate.getMonth() - pengajuanDate.getMonth());
 
-    // Jika selisih bulan lebih dari 1, berarti sudah melewati batas maksimal 1 siklus payroll berikutnya
     if (monthDiff > 1) {
         throw {
             code: 400,
             message: 'Reimburse request has expired. It can only be processed within the current or next payroll cycle.'
         };
     }
-
-    // Reminder: Buat sistem auto-reject jika data berstatus 'pending' dan (currentDate - pengajuanDate) memiliki monthDiff > 1
 
     reimburse.status = status;
     await reimburse.save();
@@ -222,17 +352,14 @@ export const getAllReimburseHistory = async (
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    const reimburse = await Reimburse.findAll({
-        order: [['createdAt', 'DESC']],
-    });
+    const reimburse = await fetchReimburseList({});
 
     return {
         code: 200,
         message: 'Reimburse history fetched successfully',
         data: { reimburse },
     };
-
-}
+};
 
 export const deleteReimburseRequest = async (
     req: AuthenticatedRequest,
@@ -246,9 +373,10 @@ export const deleteReimburseRequest = async (
 
     const reimburse = await Reimburse.findOne({
         where: { reimburse_id: id },
+        include: [{ model: User, attributes: ['user_id', 'jabatan'] }]
     });
 
-    if (!reimburse || reimburse.deletedAt) {
+    if (!reimburse || !reimburse.user) {
         throw { code: 404, message: 'Reimburse record not found' };
     }
 
@@ -256,49 +384,14 @@ export const deleteReimburseRequest = async (
         throw { code: 400, message: 'Only pending reimburse requests can be deleted' };
     }
 
-    // User can only delete their own, but admin/manager can delete any pending
-    if (req.auth.role === 'Staff' && reimburse.user_id !== req.auth.id) {
-        throw { code: 403, message: 'Forbidden: You can only delete your own reimburse requests' };
-    }
+    const isSelf = reimburse.user_id === req.auth.id;
+    checkUpdateDeleteHierarchy(reimburse.user.jabatan, req.auth.jabatan || '', req.auth.role, isSelf);
 
     await reimburse.destroy();
+    
     return {
         code: 200,
         message: 'Reimburse request deleted successfully',
         data: { reimburse },
     };
-}
-
-export const deleteMyReimburseRequest = async (
-    req: AuthenticatedRequest,
-    _res: Response
-): Promise<ApiResponse<{ reimburse: Reimburse }>> => {
-    if (!req.auth?.id) {
-        throw { code: 401, message: 'Unauthorized' };
-    }
-
-    const id = getParamId(req);
-
-    const reimburse = await Reimburse.findOne({
-        where: { reimburse_id: id },
-    });
-
-    if (!reimburse || reimburse.deletedAt) {
-        throw { code: 404, message: 'Reimburse record not found' };
-    }
-
-    if (reimburse.user_id !== req.auth.id) {
-        throw { code: 403, message: 'Forbidden: You can only delete your own reimburse requests' };
-    }
-
-    if (reimburse.status !== 'Pending') {
-        throw { code: 400, message: 'Only pending reimburse requests can be deleted' };
-    }
-
-    await reimburse.destroy();
-    return {
-        code: 200,
-        message: 'Reimburse request deleted successfully',
-        data: { reimburse },
-    };
-}
+};
