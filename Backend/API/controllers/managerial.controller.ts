@@ -1,7 +1,7 @@
 import e, { Request, Response } from 'express';
 import { User } from '../../models/user';
 import { ApiResponse } from '../middlewares/response.middleware';
-import { DEPARTEMEN_VALUES, JABATAN_VALUES, departemenIndex, jabatanIndex } from '../utils/helper.js';
+import { DEPARTEMEN_VALUES, JABATAN_VALUES, jabatanIndex } from '../utils/helper.js';
 
 type AuthenticatedRequest = Request & {
 	auth?: {
