@@ -320,22 +320,16 @@ export const updateProfileById = async (
         throw { code: 404, message: 'User not found' };
     }
 
-    const requiredFields = {
-        nama,
-        email,
-        alamat,
-        tanggal_lahir,
-        jabatan,
-        role,
-        departemen,
-        manager_id,
-    };
-
-    const missingFields = Object.entries(requiredFields)
-        .filter(([, value]) => value == null)
-        .map(([key]) => key);
-
-    if (missingFields.length > 0) {
+    if (
+        nama == null ||
+        email == null ||
+        alamat == null ||
+        tanggal_lahir == null ||
+        jabatan == null ||
+        role == null ||
+        departemen == null ||
+        manager_id == null
+    ) {
         throw { code: 401, message: 'Mandatory fields are missing' };
     }
 

@@ -16,7 +16,6 @@ const router = Router();
 router.get('/users', authMiddleware(), apiResponse(getAllUsers));
 router.post('/users', authMiddleware(['admin']), uploadImage.single('gambar'), apiResponse(createUser));
 router.patch('/users/reset/:id', authMiddleware(['admin']), apiResponse(resetPassword));
-router.get('/users/:id', authMiddleware(['admin']), apiResponse(getProfileId));
 router.patch('/users/:id', authMiddleware(['admin']), uploadImage.single('gambar'), apiResponse(updateProfileById));
 router.delete('/users/:id', authMiddleware(['admin']), apiResponse(deleteUser));
 
