@@ -9,7 +9,7 @@ const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
 export const login = async (
   req: Request,
   _res: Response
-): Promise<ApiResponse<{ token: string; user: { nama: string; jabatan: string; role: string } }>> => {
+): Promise<ApiResponse<{ token: string; user: { nama: string; jabatan: string; role: string; departemen:string } }>> => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ where: { email } });
@@ -22,7 +22,7 @@ export const login = async (
     throw { code: 400, message: 'Invalid credentials' };
   }
 
-  const token = jwt.sign({ id: user.user_id, role: user.role, jabatan: user.jabatan }, jwtSecret, { expiresIn: '4h' });
+  const token = jwt.sign({ id: user.user_id, role: user.role, jabatan: user.jabatan}, jwtSecret, { expiresIn: '4h' });
 
   return {
     code: 200,
@@ -33,6 +33,8 @@ export const login = async (
         nama: user.nama,
         jabatan: user.jabatan,
         role: user.role,
+        departemen : user.departemen
+
       },
     },
   };
