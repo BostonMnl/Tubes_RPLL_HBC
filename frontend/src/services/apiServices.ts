@@ -38,7 +38,7 @@ export const userServices = {
 
   // Get user by ID
   getUserById: async (userId: string) => {
-    const response = await fetchWithToken(`${API_BASE_URL}/admin/users/${userId}`);
+    const response = await fetchWithToken(`${API_BASE_URL}/managerial/users/${userId}`);
     return handleResponse(response);
   },
   getUserByIdManagerial: async (userId: string) => {
@@ -47,17 +47,17 @@ export const userServices = {
   },
 
   // Create new user
-createUser: async (userData: Partial<User> | FormData) => {
-  const isFormData = userData instanceof FormData;
+  createUser: async (userData: Partial<User> | FormData) => {
+    const isFormData = userData instanceof FormData;
 
-  const response = await fetchWithToken(`${API_BASE_URL}/admin/users`, {
-    method: 'POST',
-    body: isFormData ? userData : JSON.stringify(userData),
-    headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
-  });
+    const response = await fetchWithToken(`${API_BASE_URL}/admin/users`, {
+      method: 'POST',
+      body: isFormData ? userData : JSON.stringify(userData),
+      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+    });
 
-  return handleResponse(response);
-},
+    return handleResponse(response);
+  },
 
   // Update user
   updateUser: async (
@@ -96,11 +96,11 @@ createUser: async (userData: Partial<User> | FormData) => {
   },
 
   resetPassword: async (userId: string, body: { newPassword: string }) => {
-  return fetchWithToken(`${API_BASE_URL}/admin/users/reset/${userId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(body),
-  }).then(handleResponse);
-},
+    return fetchWithToken(`${API_BASE_URL}/admin/users/reset/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }).then(handleResponse);
+  },
 };
 
 // // ============ ATTENDANCE SERVICES ============
