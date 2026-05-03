@@ -99,7 +99,7 @@ export default function UserDetail({ userId, goBack }: Props) {
       formData.append('jabatan', form.jabatan ?? '');
       formData.append('role', form.role ?? '');
       formData.append('departemen', form.departemen ?? '');
-      formData.append('manager_id', form.manager_id ?? '');
+      formData.append('manager_id', form.manager_id ?? '1f6160f8-df77-4ad0-84eb-fde030eb7110');
       if (imageFile) formData.append('gambar', imageFile, imageFile.name);
 
       await userServices.updateUser(userId, formData);
