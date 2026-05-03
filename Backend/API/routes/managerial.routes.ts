@@ -7,7 +7,7 @@ import { getProfileId } from 'API/controllers/admin.userManage.controller';
 const router = Router();
 
 router.patch('/:id', authMiddleware([], ['supervisor', 'manager']), apiResponse(promoteUser));
-router.get('/users/:id', authMiddleware([],['supervisor', 'manager']), apiResponse(getProfileId));
+router.get('/users/:id', authMiddleware(['admin' , 'staff'],[]), apiResponse(getProfileId));
 // router.patch('/:id/manager', authMiddleware([], ['supervisor', 'manager']), apiResponse(assignManager));
 
 export default router;

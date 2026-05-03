@@ -176,7 +176,7 @@ export const getAllCutiRequests = async (
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
-    
+
     const { status } = req.query;
     const whereClause: any = {};
     
@@ -192,7 +192,7 @@ export const getAllCutiRequests = async (
             {
                 model: User,
                 as: 'user',
-                attributes: ['nama'],
+                attributes: ['nama','departemen'],
             }
         ],
         order: [['createdAt', 'DESC']],
