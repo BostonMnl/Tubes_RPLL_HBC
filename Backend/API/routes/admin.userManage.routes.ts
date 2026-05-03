@@ -2,7 +2,6 @@ import { Router } from 'express';
 import {
     createUser,
     resetPassword,
-    getProfileId,
     updateProfileById,
     getAllUsers,
     deleteUser,
