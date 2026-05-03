@@ -12,7 +12,7 @@ type AuthenticatedRequest = Request & {
   };
 };
 
-const QR_TTL = 60; // seconds
+const QR_TTL = 300; // seconds
 const QR_KEY = 'attendance:current_qr';
 const cache = new NodeCache({ stdTTL: QR_TTL, checkperiod: Math.max(1, Math.floor(QR_TTL / 2)) });
 
@@ -89,6 +89,17 @@ export const scanAttendance = async (
   cache.set(usedKey, '1', QR_TTL);
 
   const { date, time } = getLocalDateTime();
+  const existingForToday = await Absensi.findOne({
+    where: {
+      user_id: req.auth.id,
+      date,
+    },
+  });
+
+  if (existingForToday) {
+    throw { code: 409, message: 'Attendance already recorded for today' };
+  }
+
   const attendance = await Absensi.create({
     date,
     jam_masuk: time,
@@ -161,7 +172,6 @@ export const checkoutAttendance = async (
 
   const { time } = getLocalDateTime();
   attendance.jam_keluar = time;
-  attendance.updatedAt = new Date();
   await attendance.save();
 
   return {
