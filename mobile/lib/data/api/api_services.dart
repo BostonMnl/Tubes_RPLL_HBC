@@ -1,0 +1,216 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:mobile/data/model/Gaji.dart';
+import 'package:mobile/data/model/cuti.dart';
+import 'package:mobile/data/model/user.dart';
+
+class ApiServices {
+  static const String _baseUrl = "http://192.168.43.67:3000/api";
+
+  static Future<String> forgotPassword(String email) async {
+    final url = Uri.parse("$_baseUrl/forgot-password");
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
+    );
+
+    final res = _handleResponse(response);
+
+    return res['message'];
+  }
+
+  static Future<String> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse("$_baseUrl/reset-password"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"token": token, "newPassword": newPassword}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data["message"];
+    } else {
+      throw Exception(data["message"] ?? "Reset password gagal");
+    }
+  }
+
+  static Future<User> getMyProfile(String token) async {
+    final response = await http.get(
+      Uri.parse("$_baseUrl/me"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    print("DATA: $data");
+
+    if (response.statusCode == 200) {
+      return User.fromJson(data['data']['user']);
+    } else {
+      throw Exception(data['message']);
+    }
+  }
+
+  static Future<User> updateMyProfile({
+    required String token,
+    String? alamat,
+    String? nomorTelepon,
+    File? imageFile,
+  }) async {
+    final response = await http.patch(
+      Uri.parse("$_baseUrl/me"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({"alamat": alamat, "nomor_telepon": nomorTelepon}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return User.fromJson(data['data']['user']);
+    } else {
+      throw Exception(data['message']);
+    }
+  }
+
+  static Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    final url = Uri.parse("$_baseUrl/auth/login");
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (data['data'] == null) {
+        throw Exception("Response tidak valid");
+      }
+
+      return {
+        "token": data['data']['token'],
+        "user": User.fromJson(data['data']['user']),
+      };
+    }
+
+    final message = data['message'] ?? "Login gagal";
+
+    throw Exception(_mapLoginError(message));
+  }
+
+  //Leave
+  static Future<List<Cuti>> getMyCuti(String token) async {
+    final response = await http.get(
+      Uri.parse("$_baseUrl/cuti/me"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    print("CUTI RESPONSE: $data");
+
+    if (response.statusCode == 200) {
+      final List list = data['data']['cuti'];
+
+      return list.map((e) => Cuti.fromJson(e)).toList();
+    } else {
+      throw Exception(data['message']);
+    }
+  }
+
+  static Future<void> createCuti({
+    required String token,
+    required String keterangan,
+    required String jenisCuti,
+    required DateTime tanggalMulai,
+    required DateTime tanggalAkhir,
+  }) async {
+    final response = await http.post(
+      Uri.parse("$_baseUrl/cuti"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "keterangan": keterangan,
+        "jenis_cuti": jenisCuti,
+        "tanggal_mulai": tanggalMulai.toIso8601String(),
+        "tanggal_akhir": tanggalAkhir.toIso8601String(),
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(data['message'] ?? "Failed to create cuti");
+    }
+  }
+
+  static Future<List<Gaji>> getMyGaji(String token) async {
+    final response = await http.get(
+      Uri.parse("$_baseUrl/gaji/me"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    print("GAJI RESPONSE: $data");
+
+    if (response.statusCode == 200) {
+      final List list = data['data']['gaji'];
+
+      return list.map((e) => Gaji.fromJson(e)).toList();
+    } else {
+      throw Exception(data['message']);
+    }
+  }
+
+  static Map<String, dynamic> _handleResponse(http.Response response) {
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    } else {
+      throw Exception(data['message'] ?? 'Unknown error');
+    }
+  }
+
+  static String _mapLoginError(String msg) {
+    final lower = msg.toLowerCase();
+
+    if (lower.contains("email not found")) {
+      return "Email tidak ditemukan";
+    } else if (lower.contains("wrong password")) {
+      return "Password salah";
+    } else if (lower.contains("invalid")) {
+      return "Email atau password salah";
+    } else if (lower.contains("unauthorized")) {
+      return "Email atau password salah";
+    } else {
+      return msg;
+    }
+  }
+}
