@@ -73,8 +73,11 @@ export const processUserPayroll = async (userId: string, bulan: number, tahun: n
 
     await syncUnpaidLeavePenalties(userId, bulan, tahun);
 
-    const startDate = new Date(tahun, bulan - 1, 1);
-    const endDate = new Date(tahun, bulan, 0, 23, 59, 59);
+    // LOGIKA CUTOFF 25:
+    // Tanggal 26 Bulan Lalu
+    const startDate = new Date(tahun, bulan - 2, 26, 0, 0, 0);
+    // Tanggal 25 Bulan Ini
+    const endDate = new Date(tahun, bulan - 1, 25, 23, 59, 59);
 
     const gaji = await Gaji.findOne({
         where: {
