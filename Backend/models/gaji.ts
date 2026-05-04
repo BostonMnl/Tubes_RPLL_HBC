@@ -30,7 +30,6 @@ export class Gaji extends Model {
 
     @Column({
         type: DataType.DATEONLY,
-        unique: true,
         allowNull: false
     })
     declare tanggal_berlaku: Date;
