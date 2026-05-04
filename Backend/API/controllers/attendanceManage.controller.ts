@@ -1,12 +1,14 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { Absensi } from '../../models/absensi';
+import { User } from '../../models/user';
 import { ApiResponse } from '../middlewares/response.middleware';
 
 type AuthenticatedRequest = Request & {
 	auth?: {
 		id: string;
 		role: string;
+		jabatan?: string;
 	};
 };
 
@@ -67,6 +69,41 @@ export const getAllAttendance = async (
 			whereClause.date = { [Op.gte]: fromDate };
 		} else if (toDate) {
 			whereClause.date = { [Op.lte]: toDate };
+		}
+	}
+
+	if (req.auth.role !== 'admin') {
+		const actorUser = await User.findByPk(req.auth.id, { attributes: ['jabatan', 'departemen'] });
+		if (!actorUser || actorUser.deletedAt) {
+			throw { code: 401, message: 'Unauthorized' };
+		}
+
+		let allowedJabatan: string[] = [];
+		if (actorUser.jabatan === 'manager') {
+			allowedJabatan = ['staff'];
+		} else if (actorUser.jabatan === 'supervisor') {
+			allowedJabatan = ['staff', 'manager'];
+		} else {
+			throw { code: 403, message: 'Forbidden : insufficient WEWENANG' };
+		}
+
+		const allowedUsers = await User.findAll({
+			where: {
+				departemen: actorUser.departemen,
+				jabatan: { [Op.in]: allowedJabatan },
+			},
+			attributes: ['user_id'],
+		});
+
+		const allowedUserIds = allowedUsers.map((u) => u.user_id);
+
+		if (user_id) {
+			if (!allowedUserIds.includes(user_id)) {
+				throw { code: 403, message: 'Forbidden : insufficient WEWENANG' };
+			}
+			whereClause.user_id = user_id;
+		} else {
+			whereClause.user_id = { [Op.in]: allowedUserIds };
 		}
 	}
 
@@ -142,7 +179,7 @@ export const patchAttendance = async (
 	}
 
 	if (status !== undefined) {
-		const allowedStatus = ['Hadir', 'Sakit', 'Cuti', 'Alpha'];
+		const allowedStatus = ['Hadir', 'Telat', 'Sakit', 'Cuti', 'Alpha'];
 		if (!allowedStatus.includes(status)) {
 			throw { code: 400, message: 'status must be one of: Hadir, Sakit, Cuti, Alpha' };
 		}
