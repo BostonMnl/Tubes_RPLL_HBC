@@ -17,6 +17,8 @@ type AuthenticatedRequest = Request & {
 const QR_TTL = 10; // seconds
 const QR_KEY = 'attendance:current_qr';
 const cache = new NodeCache({ stdTTL: QR_TTL, checkperiod: Math.max(1, Math.floor(QR_TTL / 2)) });
+const HADIR_WINDOW_MINUTES = 10;
+const TELAT_WINDOW_MINUTES = 60;
 
 const padTwo = (value: number): string => String(value).padStart(2, '0');
 const isValidTime = (value: string): boolean => /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value);
@@ -60,15 +62,24 @@ const getTodayStartRecord = async (): Promise<AbsensiStart | null> => {
   });
 };
 
-const isAttendanceActive = async (): Promise<boolean> => {
+const getAttendanceWindow = async (): Promise<{ record: AbsensiStart; diffMinutes: number } | null> => {
   const record = await getTodayStartRecord();
   if (!record) {
-    return false;
+    return null;
   }
 
   const diffMs = Date.now() - record.absensi_dimulai.getTime();
   const diffMinutes = diffMs / (1000 * 60);
-  return diffMinutes <= 10;
+  return { record, diffMinutes };
+};
+
+const isAttendanceActive = async (): Promise<boolean> => {
+  const window = await getAttendanceWindow();
+  if (!window) {
+    return false;
+  }
+
+  return window.diffMinutes <= TELAT_WINDOW_MINUTES;
 };
 
 export const generateNewQR = async (): Promise<string> => {
@@ -134,7 +145,7 @@ export const recordStart = async (
     const diffMs = Date.now() - existing.absensi_dimulai.getTime();
     const diffMinutes = diffMs / (1000 * 60);
 
-    if (diffMinutes > 10) {
+    if (diffMinutes > HADIR_WINDOW_MINUTES) {
       throw { code: 400, message: 'Record start expired' };
     }
 
@@ -182,10 +193,11 @@ export const scanAttendance = async (
       throw { code: 400, message: 'Missing qr_token' };
     }
 
-    isActive = await isAttendanceActive();
-    if (!isActive) {
+    const window = await getAttendanceWindow();
+    if (!window || window.diffMinutes > TELAT_WINDOW_MINUTES) {
       throw { code: 400, message: 'Attendance not started or expired' };
     }
+    isActive = true;
 
     const currentQR = cache.get<string>(QR_KEY);
 
@@ -214,11 +226,12 @@ export const scanAttendance = async (
       throw { code: 409, message: 'Attendance already recorded for today' };
     }
 
+    const status = window.diffMinutes <= HADIR_WINDOW_MINUTES ? 'Hadir' : 'Telat';
     const attendance = await Absensi.create({
       date,
       jam_masuk: time,
       jam_keluar: null,
-      status: 'Hadir',
+      status,
       qr_code: qr_token,
       user_id: req.auth.id,
     });

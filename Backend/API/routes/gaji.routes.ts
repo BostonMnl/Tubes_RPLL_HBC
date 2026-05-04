@@ -12,9 +12,9 @@ import { apiResponse } from '../middlewares/response.middleware';
 const router = Router();
 
 router.get('/me', authMiddleware(), apiResponse(getMyGaji));
-router.post('/', authMiddleware([], ['manager', 'supervisor', 'admin']), apiResponse(createGaji));
-router.get('/:userId', authMiddleware([], ['manager', 'supervisor', 'admin']), apiResponse(getGajiByUserId));
-router.get('/', authMiddleware([], ['manager', 'supervisor', 'admin']), apiResponse(getAllGaji));
-router.put('/:userId', authMiddleware([], ['manager', 'supervisor', 'admin']), apiResponse(updateGajiTetap));
+router.post('/', authMiddleware([], ['manager', 'supervisor']), apiResponse(createGaji));
+router.get('/', authMiddleware([], ['manager', 'supervisor']), apiResponse(getAllGaji));
+router.get('/:userId', authMiddleware([], ['manager', 'supervisor']), apiResponse(getGajiByUserId));
+router.put('/:userId', authMiddleware([], ['manager', 'supervisor']), apiResponse(updateGajiTetap));
 
 export default router;

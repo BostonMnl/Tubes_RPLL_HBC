@@ -240,11 +240,15 @@ export const getAllGaji = async (
 ): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
     if (!req.auth?.id) throw { code: 401, message: 'Unauthorized' };
 
-    const currentPeriod = normalizeToPeriod(new Date());
+    const dateParam = req.query.date;
+    if (!dateParam || typeof dateParam !== 'string' || isNaN(Date.parse(dateParam))) {
+        throw { code: 400, message: 'Valid date query parameter is required' };
+    }
+    const targetPeriod = normalizeToPeriod(dateParam);
 
     const allGaji = await Gaji.findAll({
         where: {
-            tanggal_berlaku: { [Op.lte]: currentPeriod }
+            tanggal_berlaku: { [Op.lte]: targetPeriod }
         },
         order: [
             ['user_id', 'ASC'],

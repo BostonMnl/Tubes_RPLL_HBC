@@ -177,7 +177,11 @@ export const getProfileId = async (
 	}
 
 	if (actorUser.jabatan === 'manager') {
+<<<<<<< HEAD
 		const sameDepartemen = user.departemen ===actorUser.departemen;
+=======
+		const sameDepartemen = user.departemen === actorUser.departemen;
+>>>>>>> feature-backend
 		if (!sameDepartemen || user.jabatan !== 'staff') {
 			throw { code: 403, message: 'Forbidden : insufficient WEWENANG' };
 		}
