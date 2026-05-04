@@ -14,7 +14,7 @@ type AuthenticatedRequest = Request & {
   };
 };
 
-const QR_TTL = 10; // seconds
+const QR_TTL = 20; // seconds
 const QR_KEY = 'attendance:current_qr';
 const cache = new NodeCache({ stdTTL: QR_TTL, checkperiod: Math.max(1, Math.floor(QR_TTL / 2)) });
 const HADIR_WINDOW_MINUTES = 10;
