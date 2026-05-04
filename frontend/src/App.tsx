@@ -18,6 +18,9 @@ import ManagementTree from './components/ManagementTree';
 import ManagerDashboard from './components/ManagerDashboard';
 import RoleRoute from './routes/RoleRoute';
 import UserPageManager from './components/manager/UserPageManager';
+import ReimburseStaff from './components/staff/reimburseStaff';
+import CalendarViewStaff from './components/staff/CalendarViewStaff';
+import WageStaff from './components/staff/WageStaff';
 
 function DashboardLayout() {
   return (
@@ -78,6 +81,23 @@ export default function App() {
         <Route path="wage" element={<WageSettings />} />
         <Route path="tree" element={<ManagementTree />} />
         <Route path="profile" element={<AdminProfile />} />
+      </Route>
+
+      <Route
+        path="/staff"
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowJabatan={['staff']}>
+              <DashboardLayout />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route path="" index element={<ManagementTree />} />
+        <Route path="reimburse" element={<ReimburseStaff />} />
+        <Route path="calendar" element={<CalendarViewStaff />} />
+        <Route path="wage" element={<WageStaff />} />
+
       </Route>
     </Routes>
   );
