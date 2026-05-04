@@ -14,9 +14,10 @@ import insentifRoutes from './routes/insentif.routes';
 import penaltiRoutes from './routes/pinalti.routes';
 import payrollRoutes from './routes/payroll.routes';
 import attendanceRoutes from './routes/attendance.routes';
-import adminAttendanceManageRoutes from './routes/admin.attendanceManage.routes';
+import attendanceManageRoutes from './routes/attendanceManage.routes';
 import { apiErrorHandler } from './middlewares/response.middleware';
 import schedulePayrollJob from './src/cron.job';
+import scheduleAttendanceAlphaJob from './src/attendance-alpha.job';
 const app = express();  
 
 // Middleware
@@ -29,7 +30,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
 app.use('/api/admin', adminUserManageRoutes);
-// app.use('/api/admin/attendance', adminAttendanceManageRoutes);
+app.use('/api/attendance/manage', attendanceManageRoutes);
 app.use('/api/managerial', managerialRoutes);
 app.use('/api/reimburse', reimburseRoutes);
 app.use('/api/cuti', cutiRoutes);
@@ -37,7 +38,7 @@ app.use('/api/gaji', gajiRoutes);
 app.use('/api/insentif', insentifRoutes);
 app.use('/api/penalti', penaltiRoutes);
 app.use('/api/payroll', payrollRoutes);
-// app.use('/api/attendance', attendanceRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Error handler (must be after routes)
 app.use(apiErrorHandler);
@@ -47,6 +48,7 @@ app.use(apiErrorHandler);
 sequelize.sync({ force: false }).then(() => {
   console.log('Database connected');
   schedulePayrollJob(); // Start the cron job
+  scheduleAttendanceAlphaJob();
   console.log('Cron job scheduled');
   const PORT = Number(process.env.PORT) || 3000;
   app.listen(PORT, '0.0.0.0', () => {
