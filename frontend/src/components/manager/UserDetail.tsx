@@ -29,6 +29,7 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [attendance, setAttendance] = useState<any[]>([]);
 
   const currentUser = getUser();
 
@@ -46,8 +47,9 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
       setLoading(true);
       try {
         const res = await userServices.getUserByIdManagerial(userId);
-        const userData = res.data?.user ?? res.user ?? res;
-        setForm(userData);
+        const userData = res.data ?? res.user ?? res;
+        setForm(userData.user);
+        setAttendance(userData.attendance || []);
       } catch (err) {
         console.error('Gagal ambil user detail', err);
       } finally {
@@ -241,16 +243,20 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
           </thead>
 
           <tbody>
-            {[
-              { date: '2026-04-20', status: 'Hadir' },
-              { date: '2026-04-21', status: 'Telat' },
-              { date: '2026-04-22', status: 'Hadir' },
-            ].map((a, i) => (
-              <tr key={i}>
-                <td>{a.date}</td>
-                <td>{renderStatus(a.status)}</td>
+            {attendance.length > 0 ? (
+              attendance.map((a, i) => (
+                <tr key={i}>
+                  <td>{a.date}</td>
+                  <td>{renderStatus(a.status)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2} className="text-center text-muted">
+                  Belum ada data absensi
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </Table>
       </Card>

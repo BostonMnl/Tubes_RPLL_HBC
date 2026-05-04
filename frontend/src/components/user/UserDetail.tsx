@@ -43,14 +43,17 @@ export default function UserDetail({ userId, goBack }: Props) {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [attendance, setAttendance] = useState<any[]>([]);
+
 
   const fetchUserData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const response = await userServices.getUserById(userId);
-      const userData = response.data.user || response;
-      setForm(userData);
+      const userData = response.data || response;
+      setForm(userData.user);
+      setAttendance(userData.attendance || []);
       setPreview(
         userData.gambar
           ? `http://localhost:3000${userData.gambar}`
@@ -83,11 +86,7 @@ export default function UserDetail({ userId, goBack }: Props) {
     fetchManagers();
   }, [fetchUserData, fetchManagers]);
 
-  const attendance = [
-    { date: '2026-04-20', status: 'Hadir' },
-    { date: '2026-04-21', status: 'Telat' },
-    { date: '2026-04-22', status: 'Cuti' },
-  ];
+
 
   const display = (val: any) => (val ? val : '-');
 
@@ -403,12 +402,20 @@ export default function UserDetail({ userId, goBack }: Props) {
             </tr>
           </thead>
           <tbody>
-            {attendance.map((a, i) => (
-              <tr key={i}>
-                <td>{a.date}</td>
-                <td>{renderStatus(a.status)}</td>
+            {attendance.length > 0 ? (
+              attendance.map((a, i) => (
+                <tr key={i}>
+                  <td>{a.date}</td>
+                  <td>{renderStatus(a.status)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2} className="text-center text-muted">
+                  Belum ada data absensi
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </Table>
       </Card>

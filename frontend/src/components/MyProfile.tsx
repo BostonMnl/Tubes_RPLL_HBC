@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Form, Button, Badge, Spinner, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Badge, Spinner, Alert, Table } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { userServices } from '../services/apiServices';
 import type { User } from '../model/User';
@@ -16,6 +16,7 @@ export default function MyProfile() {
 
   const [form, setForm] = useState<Partial<User>>({});
   const [preview, setPreview] = useState<string>('');
+  const [attendance, setAttendance] = useState<any[]>([]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -30,7 +31,7 @@ export default function MyProfile() {
           userId = decoded?.id;
         }
       }
-      console.log(userId);
+
 
       if (!userId) {
         setError('ID User tidak ditemukan. Silakan login ulang.');
@@ -40,9 +41,10 @@ export default function MyProfile() {
 
       try {
         const response = await userServices.getMyProfile();
-        const userData = response.data?.user || response.data || response;
+        const userData = response.data || response.data || response;
 
-        setForm(userData);
+        setForm(userData.user);
+        setAttendance(userData.attendance);
         setPreview(
           userData.gambar
             ? `http://localhost:3000${userData.gambar}`
@@ -116,6 +118,19 @@ export default function MyProfile() {
       </div>
     );
   }
+
+  const renderStatus = (status: string) => {
+    switch (status) {
+      case 'Hadir':
+        return <Badge bg="success">Hadir</Badge>;
+      case 'Telat':
+        return <Badge bg="warning">Telat</Badge>;
+      case 'Alpha':
+        return <Badge bg="danger">Alpha</Badge>;
+      default:
+        return <Badge bg="secondary">{status}</Badge>;
+    }
+  };
 
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: 20 }}>
@@ -263,6 +278,35 @@ export default function MyProfile() {
             )}
           </Col>
         </Row>
+      </Card>
+
+      {/* ===== LOG ABSENSI ===== */}
+      <Card className="p-4 shadow-sm" style={{ borderRadius: 16, border: 'none' }}>
+        <h5 style={{ color: '#ff3d7f' }}>Log Absensi</h5>
+        <Table hover className="mt-3 align-middle">
+          <thead style={{ background: '#ffe4ec' }}>
+            <tr>
+              <th>Tanggal</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attendance.length > 0 ? (
+              attendance.map((a, i) => (
+                <tr key={i}>
+                  <td>{a.date}</td>
+                  <td>{renderStatus(a.status)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2} className="text-center text-muted">
+                  Belum ada data absensi
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </Table>
       </Card>
     </div>
   );

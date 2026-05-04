@@ -8,7 +8,7 @@ import 'package:mobile/data/model/user.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiServices {
-  static const String _baseUrl = "http://192.168.1.6:3000/api";
+  static const String _baseUrl = "http://192.168.1.7:3000/api";
 
   static Future<String> forgotPassword(String email) async {
     final url = Uri.parse("$_baseUrl/forgot-password");
@@ -247,6 +247,28 @@ class ApiServices {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(data['message'] ?? "Failed to create cuti");
     }
+  }
+
+  static Future<String> scanQR({
+    required String token,
+    required String qrToken,
+  }) async {
+    final response = await http.post(
+      Uri.parse("$_baseUrl/attendance/scan"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({"qr_token": qrToken}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(data['message'] ?? "Gagal scan QR");
+    }
+
+    return data['attendance']['jam_masuk']; 
   }
 
   static Future<List<Gaji>> getMyGaji(String token) async {
