@@ -431,24 +431,24 @@ export default function ReimbursePage() {
                     </thead>
                     <tbody>
                       {historyData.map((item, idx) => {
-                        const user = (item as any).User;
-                        return (
-                          <tr key={item.reimburse_id}>
-                            <td>{idx + 1}</td>
-                            <td>{item?.user?.nama || item.user_id}</td>
-                            <td>{item.user.jabatan || '-'}</td>
-                            <td>{formatRupiah(item.nominal)}</td>
-                            <td>{item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
-                            <td>{display(item.keterangan)}</td>
-                            <td>{renderStatus(item.status)}</td>
-                            <td>
-                              <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
-                                Lihat
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+    return (
+      <tr key={item.reimburse_id}>
+        <td>{idx + 1}</td>
+        {/* Safe access with optional chaining */}
+        <td>{item?.user?.nama || item.user_id}</td>
+        <td>{item?.user?.jabatan || '-'}</td> {/* Added ?. here */}
+        <td>{formatRupiah(item.nominal)}</td>
+        <td>{item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
+        <td>{display(item.keterangan)}</td>
+        <td>{renderStatus(item.status)}</td>
+        <td>
+          <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
+            Lihat
+          </Button>
+        </td>
+      </tr>
+    );
+  })}
                     </tbody>
                   </Table>
                 )}
