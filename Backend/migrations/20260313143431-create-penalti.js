@@ -27,6 +27,10 @@ module.exports = {
         type: Sequelize.DATEONLY,
         allowNull: false
       },
+      gambar:{
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
       user_id: {
         type: Sequelize.UUID,
         allowNull: false,
