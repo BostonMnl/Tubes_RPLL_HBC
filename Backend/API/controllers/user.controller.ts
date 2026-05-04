@@ -128,7 +128,7 @@ export const getMyProfile = async (
 		throw { code: 404, message: 'User not found' };
 	}
 
-	const attendance = await Absensi.findOne({
+	const attendance = await Absensi.findAll({
 		where: { user_id: req.auth.id },
 		attributes: ['date', 'status'],
 		order: [
