@@ -13,11 +13,11 @@ import { uploadImage} from '../utils/uploadUtils';
 
 const router = Router();
 
-router.post('/', authMiddleware(['admin'], ['manager', 'supervisor']), uploadImage.single('gambar'), apiResponse(createInsentif));
+router.post('/', authMiddleware([], ['manager', 'supervisor']), uploadImage.single('gambar'), apiResponse(createInsentif));
 router.get('/me', authMiddleware(), apiResponse(getMyInsentif));
 router.get('/:id', authMiddleware(), apiResponse(getInsentifById));
-router.get('/', authMiddleware(['admin'], ['manager', 'supervisor']), apiResponse(getAllInsentif));
-router.put('/:id', authMiddleware(['admin'], ['manager', 'supervisor']), uploadImage.single('gambar'), apiResponse(editInsentif));
-router.delete('/:id', authMiddleware(['admin']), apiResponse(deleteInsentif));
+router.get('/', authMiddleware([], ['manager', 'supervisor']), apiResponse(getAllInsentif));
+router.put('/:id', authMiddleware([], ['manager', 'supervisor']), uploadImage.single('gambar'), apiResponse(editInsentif));
+router.delete('/:id', authMiddleware([], ['manager', 'supervisor']), apiResponse(deleteInsentif));
 
 export default router;

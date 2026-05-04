@@ -22,6 +22,12 @@ export const authMiddleware = (allowedRoles: string[] = [], allowedJabatan: stri
       const normalizedRoles = allowedRoles.map((role) => role.toLowerCase());
       const normalizedJabatan = allowedJabatan.map((jabatan) => jabatan.toLowerCase());
 
+      // Admin has full access regardless of jabatan
+      if (userRole === 'admin') {
+        (req as RequestWithAuth).auth = decoded;
+        return next();
+      }
+
       if (isTokenRevoked(token)) {
         res.status(401).json({ message: 'Token has been revoked' });
         return;
@@ -33,9 +39,7 @@ export const authMiddleware = (allowedRoles: string[] = [], allowedJabatan: stri
       }
 
       if (allowedJabatan.length > 0 && !normalizedJabatan.includes(userJabatan)) {
-        if (allowedRoles.length > 0 && normalizedRoles.includes('admin')) {
-          return next();
-        }
+        console.log(`Access denied for user with role ${userRole} and jabatan ${userJabatan}. Required roles: ${normalizedRoles.join(', ')}. Required jabatan: ${normalizedJabatan.join(', ')}`);
         res.status(403).json({ message: 'Forbidden: insufficient wewenang' });
         return;
       }
