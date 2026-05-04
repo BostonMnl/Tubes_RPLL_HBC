@@ -275,12 +275,14 @@ export const approveDeclineCutiRequest = async (
         include: [{ model: User, as: 'user', attributes: ['jabatan'] }]
     });
 
-    if (!cuti || !cuti.user) {
+    const targetUser = await User.findByPk(cuti?.user_id);
+
+    if (!cuti || !targetUser) {
         throw { code: 404, message: 'Cuti record or associated user not found' };
     }
 
     const isSelf = cuti.user_id === req.auth.id;
-    checkHierarchy(cuti.user.jabatan, req.auth.jabatan, req.auth.role, isSelf);
+    checkHierarchy(targetUser.jabatan, req.auth.jabatan, req.auth.role, isSelf);
 
     cuti.status = status;
     cuti.disetujui_oleh = req.auth.id;

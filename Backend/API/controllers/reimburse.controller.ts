@@ -81,29 +81,42 @@ const checkApprovalHierarchy = (requesterJabatan: string, approverJabatan: strin
     const appJabatan = approverJabatan.toLowerCase();
     const appRole = approverRole.toLowerCase();
 
-    if (appRole === 'admin') return;
+
+    if (appRole === 'admin'){ 
+        console.log('admin bypass');
+        return;
+    }
 
     if (isSelf && appJabatan === 'supervisor') {
-        return; // Supervisor can approve their own request
+        console.log('Supervisor auto-approval');
+        return;
     }
-
+    
     if (isSelf) {
+        console.log('Self-approval attempt');
         throw { code: 403, message: 'Forbidden: You cannot approve your own request' };
     }
-
+    
     if (reqJabatan === 'staff') {
+        console.log('Processing staff request');
         if (!['manager', 'supervisor'].includes(appJabatan)) {
+            console.log('Invalid approver for staff request');
             throw { code: 403, message: 'Forbidden: Only Manager or Supervisor can process Staff requests' };
         }
     } else if (reqJabatan === 'manager') {
+        console.log('Processing manager request');
         if (appJabatan !== 'supervisor') {
+            console.log('Invalid approver for manager request');
             throw { code: 403, message: 'Forbidden: Only Supervisor can process Manager requests' };
         }
     } else if (reqJabatan === 'supervisor') {
+        console.log('Processing supervisor request');
         throw { code: 403, message: 'Forbidden: Supervisor requests require Admin approval' };
     } else {
+        console.log('Invalid requester jabatan');
         throw { code: 400, message: 'Invalid requester jabatan' };
     }
+    console.log('Hierarchy check passed');
 };
 
 const checkUpdateDeleteHierarchy = (targetJabatan: string, actorJabatan: string, actorRole: string, isSelf: boolean): void => {
@@ -195,18 +208,18 @@ export const updateReimburseRequest = async (
         include: [{ model: User, attributes: ['user_id', 'jabatan'] }]
     });
 
-    if (!reimburse || !reimburse.user) {
+    const targetUser = await User.findByPk(reimburse?.user_id);
+
+    if (!reimburse || !targetUser) {
         throw { code: 404, message: 'Reimburse record not found' };
     }
-    console.log('Nominal is missing in payload', reimburse);
-
 
     if (reimburse.status !== 'Pending') {
         throw { code: 400, message: 'Only pending reimburse requests can be updated' };
     }
 
     const isSelf = reimburse.user_id === req.auth.id;
-    checkUpdateDeleteHierarchy(reimburse.user.jabatan, req.auth.jabatan || '', req.auth.role, isSelf);
+    checkUpdateDeleteHierarchy(targetUser.jabatan, req.auth.jabatan || '', req.auth.role, isSelf);
 
     const file = (req as Request & { file?: Express.Multer.File }).file;
     const payload = validateReimbursePayload(req.body, file, true);
@@ -284,7 +297,7 @@ export const getAllReimburseRequests = async (
     if (status && ['Pending', 'Approved', 'Rejected'].includes(String(status))) {
         whereClause.status = status;
     } else {
-        whereClause.status = 'Pending';
+        whereClause.status = ['Pending', 'Approved', 'Rejected'];
     }
 
     const reimburse = await fetchReimburseList(whereClause);
@@ -317,12 +330,16 @@ export const approveDeclineReimburseRequest = async (
         include: [{ model: User, attributes: ['jabatan'] }]
     });
 
-    if (!reimburse || !reimburse.user) {
+    const targetUser = await User.findByPk(reimburse?.user_id);
+
+    if (!reimburse || !targetUser) {
         throw { code: 404, message: 'Reimburse record or associated user not found' };
     }
 
     const isSelf = reimburse.user_id === req.auth.id;
-    checkApprovalHierarchy(reimburse.user.jabatan, req.auth.jabatan, req.auth.role, isSelf);
+    console.log('3');
+    checkApprovalHierarchy(targetUser.jabatan, req.auth.jabatan, req.auth.role, isSelf);
+    console.log('4');
 
     const pengajuanDate = new Date(reimburse.tanggal);
     const monthDiff = (currentDate.getFullYear() - pengajuanDate.getFullYear()) * 12 + (currentDate.getMonth() - pengajuanDate.getMonth());
@@ -376,7 +393,9 @@ export const deleteReimburseRequest = async (
         include: [{ model: User, attributes: ['user_id', 'jabatan'] }]
     });
 
-    if (!reimburse || !reimburse.user) {
+    const targetUser = await User.findByPk(reimburse?.user_id);
+
+    if (!reimburse || !targetUser) {
         throw { code: 404, message: 'Reimburse record not found' };
     }
 
@@ -385,7 +404,7 @@ export const deleteReimburseRequest = async (
     }
 
     const isSelf = reimburse.user_id === req.auth.id;
-    checkUpdateDeleteHierarchy(reimburse.user.jabatan, req.auth.jabatan || '', req.auth.role, isSelf);
+    checkUpdateDeleteHierarchy(targetUser.jabatan, req.auth.jabatan || '', req.auth.role, isSelf);
 
     await reimburse.destroy();
     
