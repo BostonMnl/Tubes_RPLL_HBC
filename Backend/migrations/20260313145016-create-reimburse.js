@@ -32,6 +32,16 @@ module.exports = {
         type: Sequelize.DATEONLY,
         allowNull: false
       },
+      payroll_id: {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: {
+          model: 'payroll',
+          key: 'payroll_id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
       user_id: {
         type: Sequelize.UUID,
         allowNull: false,
