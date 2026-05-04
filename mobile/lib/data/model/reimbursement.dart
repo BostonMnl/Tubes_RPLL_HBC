@@ -4,7 +4,7 @@ class Reimbursement {
   final String description;
   final double amount;
   final String receiptImage;
-  final String status; // Pending, Approved, Rejected
+  final String status;
   final DateTime date;
 
   Reimbursement({
@@ -16,4 +16,16 @@ class Reimbursement {
     required this.status,
     required this.date,
   });
+
+  factory Reimbursement.fromJson(Map<String, dynamic> json) {
+    return Reimbursement(
+      reimbursementId: json['reimburse_id'],
+      userId: json['user_id'],
+      description: json['keterangan'],
+      amount: (json['nominal'] as num).toDouble(),
+      receiptImage: json['gambar'],
+      status: json['status'],
+      date: DateTime.parse(json['tanggal']),
+    );
+  }
 }

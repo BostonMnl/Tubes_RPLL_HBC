@@ -20,13 +20,13 @@ class HomeScreen extends StatelessWidget {
             },
             icon: const Icon(Icons.person, color: Colors.white, size: 30),
           ),
-          IconButton(
-            onPressed: () {
-              print("Notifikasi");
-              // Navigator.pushNamed(context, "/profile");
-            },
-            icon: const Icon(Icons.mail, color: Colors.white, size: 30),
-          ),
+          // IconButton(
+          //   onPressed: () {
+          //     print("Notifikasi");
+          //     // Navigator.pushNamed(context, "/profile");
+          //   },
+          //   icon: const Icon(Icons.mail, color: Colors.white, size: 30),
+          // ),
         ],
         backgroundColor: Colors.pink,
       ),
@@ -190,7 +190,6 @@ class HomeScreen extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // 🔥 INI YANG BENAR
           Expanded(
             child: ListView.builder(
               itemCount: attendanceData.length,

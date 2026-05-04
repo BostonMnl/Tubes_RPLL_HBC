@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:mobile/data/model/Gaji.dart';
 import 'package:mobile/data/model/cuti.dart';
+import 'package:mobile/data/model/reimbursement.dart';
 import 'package:mobile/data/model/user.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ApiServices {
-  static const String _baseUrl = "http://192.168.43.67:3000/api";
+  static const String _baseUrl = "http://192.168.1.6:3000/api";
 
   static Future<String> forgotPassword(String email) async {
     final url = Uri.parse("$_baseUrl/forgot-password");
@@ -67,14 +69,33 @@ class ApiServices {
     String? nomorTelepon,
     File? imageFile,
   }) async {
-    final response = await http.patch(
-      Uri.parse("$_baseUrl/me"),
-      headers: {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({"alamat": alamat, "nomor_telepon": nomorTelepon}),
-    );
+    final uri = Uri.parse("$_baseUrl/me");
+
+    final request = http.MultipartRequest("PATCH", uri);
+
+    // Header
+    request.headers["Authorization"] = "Bearer $token";
+
+    // Fields
+    if (alamat != null) request.fields["alamat"] = alamat;
+    if (nomorTelepon != null) {
+      request.fields["nomor_telepon"] = nomorTelepon;
+    }
+
+    if (imageFile != null) {
+      String ext = imageFile.path.split('.').last.toLowerCase();
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          "gambar",
+          imageFile.path,
+          contentType: MediaType('image', ext == 'png' ? 'png' : 'jpeg'),
+        ),
+      );
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
     final data = jsonDecode(response.body);
 
@@ -135,6 +156,68 @@ class ApiServices {
       return list.map((e) => Cuti.fromJson(e)).toList();
     } else {
       throw Exception(data['message']);
+    }
+  }
+
+  //Reimbursement
+  static Future<List<Reimbursement>> getMyReimburse(String token) async {
+    final response = await http.get(
+      Uri.parse("$_baseUrl/reimburse/me"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    print("Reimburse RESPONSE: $data");
+
+    if (response.statusCode == 200) {
+      final List list = data['data']['reimburse'];
+
+      return list.map((e) => Reimbursement.fromJson(e)).toList();
+    } else {
+      throw Exception(data['message']);
+    }
+  }
+
+  static Future<void> createReimburse({
+    required String token,
+    required String keterangan,
+    required int nominal,
+    required File gambar,
+    required DateTime tanggal,
+  }) async {
+    final uri = Uri.parse("$_baseUrl/reimburse");
+
+    final request = http.MultipartRequest("POST", uri);
+
+    request.headers["Authorization"] = "Bearer $token";
+
+    request.fields["keterangan"] = keterangan;
+    request.fields["nominal"] = nominal.toString();
+    request.fields["tanggal"] = tanggal.toIso8601String();
+
+    String ext = gambar.path.split('.').last.toLowerCase();
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        "gambar",
+        gambar.path,
+        contentType: MediaType('image', ext == 'png' ? 'png' : 'jpeg'),
+      ),
+    );
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    final data = jsonDecode(response.body);
+
+    print("CREATE REIMBURSE RESPONSE: $data");
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(data['message'] ?? "Failed to create reimburse");
     }
   }
 
