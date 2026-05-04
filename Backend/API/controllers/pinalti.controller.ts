@@ -163,19 +163,50 @@ export const getMyPenalti = async (
 ): Promise<ApiResponse<{ penalti: Penalti[] }>> => {
     if (!req.auth?.id) throw { code: 401, message: 'Unauthorized' };
 
+    const actorRole = req.auth.role.toLowerCase();
+    const actorJabatan = req.auth.jabatan?.toLowerCase() || '';
+    const actorId = req.auth.id;
+
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
+    let accessCondition: any = { user_id: actorId };
+
+    if (actorRole === 'admin') {
+        accessCondition = {};
+    } else if (actorJabatan === 'supervisor') {
+        accessCondition = {
+            [Op.or]: [
+                { user_id: actorId },
+                { '$user.jabatan$': { [Op.in]: ['manager', 'staff'] } }
+            ]
+        };
+    } else if (actorJabatan === 'manager') {
+        accessCondition = {
+            [Op.or]: [
+                { user_id: actorId },
+                { '$user.jabatan$': 'staff' }
+            ]
+        };
+    }
+
     const penalti = await Penalti.findAll({
         where: {
-            user_id: req.auth.id,
-            tanggal: { [Op.lte]: endOfMonth }
+            [Op.and]: [
+                accessCondition,
+                { tanggal: { [Op.lte]: endOfMonth } }
+            ]
         },
         order: [['tanggal', 'DESC']],
-        include: [{ model: User, as: 'user', attributes: ['nama', 'jabatan'] }]
+        include: [{
+            model: User,
+            as: 'user',
+            attributes: ['nama', 'jabatan'],
+            paranoid: false
+        }]
     });
 
-    return { data: { penalti }, code: 200, message: 'Penalti retrieved successfully' };
+    return { data: { penalti }, code: 200, message: 'Penalti retrieved successfully based on hierarchy' };
 };
 
 export const getPenaltiByUserId = async (
@@ -193,7 +224,7 @@ export const getPenaltiByUserId = async (
     const penalti = await Penalti.findAll({
         where: { user_id: userId },
         order: [['tanggal', 'DESC']],
-        include: [{ model: User, as: 'user', attributes: ['nama', 'jabatan'] }]
+        include: [{ model: User, as: 'user', attributes: ['nama', 'jabatan'], paranoid: false }]
     });
 
     return { data: { penalti }, code: 200, message: 'User penalties retrieved' };
@@ -208,7 +239,7 @@ export const getPenaltiById = async (
     const id = getParamId(req);
     const penalti = await Penalti.findOne({
         where: { penalti_id: id },
-        include: [{ model: User, as: 'user', attributes: ['user_id', 'nama', 'jabatan', 'role'] }]
+        include: [{ model: User, as: 'user', attributes: ['user_id', 'nama', 'jabatan', 'role'], paranoid: false }]
     });
     const targetUser = await User.findByPk(penalti?.user_id);
 
@@ -230,7 +261,7 @@ export const getAllPenalti = async (
 
     const penalti = await Penalti.findAll({
         order: [['tanggal', 'DESC']],
-        include: [{ model: User, as: 'user', attributes: ['nama', 'jabatan'] }]
+        include: [{ model: User, as: 'user', attributes: ['nama', 'jabatan'], paranoid: false }]
     });
 
     return { data: { penalti }, code: 200, message: 'All penalties retrieved' };
