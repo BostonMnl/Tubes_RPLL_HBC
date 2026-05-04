@@ -146,7 +146,7 @@ export const promoteUser = async (
 export const getProfileId = async (
     req: AuthenticatedRequest,
     _res: Response
-): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string } | null }>> => {
+): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string }[] }>> => {
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
@@ -163,13 +163,14 @@ export const getProfileId = async (
         throw { code: 404, message: 'User not found' };
     }
 
-	const attendance = await Absensi.findOne({
-		where: { user_id: user.user_id },
+	const attendance = await Absensi.findAll({
+		where: { user_id: id },
 		attributes: ['date', 'status'],
 		order: [
 			['date', 'DESC'],
 			['createdAt', 'DESC'],
 		],
+		limit: 30,
 	});
 
 	if (actor.role === 'admin') {
@@ -178,9 +179,7 @@ export const getProfileId = async (
 			message: 'User profile fetched successfully',
 			data: {
 				user,
-				attendance: attendance
-					? { date: attendance.date, status: attendance.status }
-					: null,
+				attendance,
 			},
 		};
 	}
@@ -211,8 +210,8 @@ export const getProfileId = async (
         message: 'User profile fetched successfully',
 		data: {
 			user,
-			attendance: attendance
-				? { date: attendance.date, status: attendance.status }
+			attendance: a
+				? { date: a.date, status: a.status }
 				: null,
 		},
     };

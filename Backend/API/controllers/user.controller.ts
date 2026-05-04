@@ -115,7 +115,7 @@ export const resetPasswordWithToken = async (
 export const getMyProfile = async (
 	req: AuthenticatedRequest,
 	_res: Response
-): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string } | null }>> => {
+): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string }[]}>> => {
 	if (!req.auth?.id) {
 		throw { code: 401, message: 'Unauthorized' };
 	}
@@ -128,13 +128,14 @@ export const getMyProfile = async (
 		throw { code: 404, message: 'User not found' };
 	}
 
-	const attendance = await Absensi.findOne({
+	const attendance = await Absensi.findAll({
 		where: { user_id: req.auth.id },
 		attributes: ['date', 'status'],
 		order: [
 			['date', 'DESC'],
 			['createdAt', 'DESC'],
 		],
+		limit: 30,
 	});
 
 	return {
@@ -142,9 +143,7 @@ export const getMyProfile = async (
 		message: 'Profile fetched successfully',
 		data: {
 			user,
-			attendance: attendance
-				? { date: attendance.date, status: attendance.status }
-				: null,
+			attendance,
 		},
 	};
 };
