@@ -1,6 +1,7 @@
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { User } from './user';
 import { Gaji } from './gaji';
+import { Payroll } from './payroll';
 
 @Table({
     tableName: 'reimburse',
@@ -46,6 +47,13 @@ export class Reimburse extends Model {
         allowNull: false
     })
     declare tanggal: Date;
+
+    @ForeignKey(() => Payroll)
+    @Column({
+        type: DataType.UUID,
+        allowNull: true
+    })
+    declare payroll_id: string | null;
 
     @ForeignKey(() => User)
     @Column({

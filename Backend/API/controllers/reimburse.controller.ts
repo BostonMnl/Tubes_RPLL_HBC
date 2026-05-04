@@ -71,8 +71,8 @@ const validateReimbursePayload = (body: any, file?: Express.Multer.File, isUpdat
 const fetchReimburseList = async (whereClause: any): Promise<Reimburse[]> => {
     return await Reimburse.findAll({
         where: whereClause,
-        order: [['createdAt', 'DESC']],
-        include: [{ model: User, attributes: ['user_id', 'nama', 'jabatan', 'role'] }]
+        include: [{ model: User, as: 'user', attributes: ['user_id', 'nama', 'jabatan', 'departemen', 'role'] }],
+        order: [['createdAt', 'DESC']]
     });
 };
 

@@ -16,7 +16,8 @@ import payrollRoutes from './routes/payroll.routes';
 import attendanceRoutes from './routes/attendance.routes';
 import adminAttendanceManageRoutes from './routes/admin.attendanceManage.routes';
 import { apiErrorHandler } from './middlewares/response.middleware';
-const app = express();
+import schedulePayrollJob from './src/cron.job';
+const app = express();  
 
 // Middleware
 app.use(cors());
@@ -45,7 +46,8 @@ app.use(apiErrorHandler);
 // Database connection
 sequelize.sync({ force: false }).then(() => {
   console.log('Database connected');
-  
+  schedulePayrollJob(); // Start the cron job
+  console.log('Cron job scheduled');
   const PORT = Number(process.env.PORT) || 3000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server jalan di port ${PORT}`);
