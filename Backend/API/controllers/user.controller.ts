@@ -115,7 +115,7 @@ export const resetPasswordWithToken = async (
 export const getMyProfile = async (
 	req: AuthenticatedRequest,
 	_res: Response
-): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string } | null }>> => {
+): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string }[] }>> => {
 	if (!req.auth?.id) {
 		throw { code: 401, message: 'Unauthorized' };
 	}
@@ -135,6 +135,7 @@ export const getMyProfile = async (
 			['date', 'DESC'],
 			['createdAt', 'DESC'],
 		],
+		limit: 30,
 	});
 
 	return {
@@ -142,9 +143,7 @@ export const getMyProfile = async (
 		message: 'Profile fetched successfully',
 		data: {
 			user,
-			attendance: attendance
-				? { date: attendance.date, status: attendance.status }
-				: null,
+			attendance,
 		},
 	};
 };

@@ -146,7 +146,7 @@ export const promoteUser = async (
 export const getProfileId = async (
     req: AuthenticatedRequest,
     _res: Response
-): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string } | null }>> => {
+): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string }[] }>> => {
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
@@ -170,6 +170,7 @@ export const getProfileId = async (
 			['date', 'DESC'],
 			['createdAt', 'DESC'],
 		],
+		limit: 30,
 	});
 
 	if (actor.role === 'admin') {
@@ -178,9 +179,7 @@ export const getProfileId = async (
 			message: 'User profile fetched successfully',
 			data: {
 				user,
-				attendance: attendance
-					? { date: attendance.date, status: attendance.status }
-					: null,
+				attendance,
 			},
 		};
 	}
@@ -211,9 +210,7 @@ export const getProfileId = async (
         message: 'User profile fetched successfully',
 		data: {
 			user,
-			attendance: attendance
-				? { date: attendance.date, status: attendance.status }
-				: null,
+			attendance,
 		},
     };
 };
