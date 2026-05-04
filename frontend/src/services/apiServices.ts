@@ -125,49 +125,48 @@ export const userServices = {
 };
 
 // // ============ ATTENDANCE SERVICES ============
-// export const attendanceServices = {
-//   // Get all attendance records
-//   getAllAttendance: async () => {
-//     try {
-//       const response = await fetch(`${API_BASE_URL}/attendance`);
-//       if (!response.ok) throw new Error('Failed to fetch attendance');
-//       return await response.json();
-//     } catch (error) {
-//       console.error('Error fetching attendance:', error);
-//       throw error;
-//     }
-//   },
+export const attendanceServices = {
+  getAllAttendance: async () => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/attendance/manage`);
+      if (!response.ok) throw new Error('Failed to fetch attendance');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      throw error;
+    }
+  },
 
-//   // Get attendance by user ID
-//   getAttendanceByUserId: async (userId: string) => {
-//     try {
-//       const response = await fetch(`${API_BASE_URL}/attendance/user/${userId}`);
-//       if (!response.ok) throw new Error('Failed to fetch attendance');
-//       return await response.json();
-//     } catch (error) {
-//       console.error('Error fetching attendance:', error);
-//       throw error;
-//     }
-//   },
+  // Get attendance by user ID
+  getAttendanceByUserId: async (userId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/attendance/user/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch attendance');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      throw error;
+    }
+  },
 
-//   // Create attendance record
-//   createAttendance: async (attendanceData: any) => {
-//     try {
-//       const response = await fetch(`${API_BASE_URL}/attendance`, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify(attendanceData),
-//       });
-//       if (!response.ok) throw new Error('Failed to create attendance');
-//       return await response.json();
-//     } catch (error) {
-//       console.error('Error creating attendance:', error);
-//       throw error;
-//     }
-//   },
-// };
+  // Create attendance record
+  createAttendance: async (attendanceData: any) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/attendance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(attendanceData),
+      });
+      if (!response.ok) throw new Error('Failed to create attendance');
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating attendance:', error);
+      throw error;
+    }
+  },
+};
 
 // // ============ LEAVE SERVICES ============
 export const leaveServices = {
@@ -530,6 +529,18 @@ export const qrGeneratorService = {
     try {
       const response = await fetchWithToken(
         `${API_BASE_URL}/attendance/qr`
+      );
+
+      return await handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching QR:', error);
+      throw error;
+    }
+  },
+  getCheckoutQR: async () => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/attendance/checkout/qr`
       );
 
       return await handleResponse(response);
