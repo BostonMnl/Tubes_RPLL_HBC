@@ -62,60 +62,66 @@ export const scanAttendance = async (
   req: AuthenticatedRequest,
   _res: Response
 ): Promise<ApiResponse<{ attendance: Absensi }>> => {
-  if (!req.auth?.id) {
-    throw { code: 401, message: 'Unauthorized' };
-  }
+  let shouldRotate = false;
 
-  const { qr_token } = req.body as { qr_token?: string };
+  try {
+    if (!req.auth?.id) {
+      throw { code: 401, message: 'Unauthorized' };
+    }
 
-  if (!qr_token || typeof qr_token !== 'string' || !qr_token.trim()) {
-    throw { code: 400, message: 'Missing qr_token' };
-  }
+    const { qr_token } = req.body as { qr_token?: string };
+    shouldRotate = typeof qr_token === 'string' && qr_token.trim().length > 0;
 
+    if (!qr_token || typeof qr_token !== 'string' || !qr_token.trim()) {
+      throw { code: 400, message: 'Missing qr_token' };
+    }
 
-  const currentQR = cache.get<string>(QR_KEY);
+    const currentQR = cache.get<string>(QR_KEY);
 
-  if (!currentQR || qr_token !== currentQR) {
-    throw { code: 400, message: 'Invalid or expired QR' };
-  }
+    if (!currentQR || qr_token !== currentQR) {
+      throw { code: 400, message: 'Invalid or expired QR' };
+    }
 
-  const usedKey = `attendance:used:${qr_token}`;
-  const isUsed = cache.get<string>(usedKey);
+    const usedKey = `attendance:used:${qr_token}`;
+    const isUsed = cache.get<string>(usedKey);
 
-  if (isUsed) {
-    throw { code: 400, message: 'QR already used' };
-  }
+    if (isUsed) {
+      throw { code: 400, message: 'QR already used' };
+    }
 
-  cache.set(usedKey, '1', QR_TTL);
+    cache.set(usedKey, '1', QR_TTL);
 
-  const { date, time } = getLocalDateTime();
-  const existingForToday = await Absensi.findOne({
-    where: {
-      user_id: req.auth.id,
+    const { date, time } = getLocalDateTime();
+    const existingForToday = await Absensi.findOne({
+      where: {
+        user_id: req.auth.id,
+        date,
+      },
+    });
+
+    if (existingForToday) {
+      throw { code: 409, message: 'Attendance already recorded for today' };
+    }
+
+    const attendance = await Absensi.create({
       date,
-    },
-  });
+      jam_masuk: time,
+      jam_keluar: null,
+      status: 'Hadir',
+      qr_code: qr_token,
+      user_id: req.auth.id,
+    });
 
-  if (existingForToday) {
-    throw { code: 409, message: 'Attendance already recorded for today' };
+    return {
+      code: 200,
+      message: 'Attendance recorded',
+      data: { attendance },
+    };
+  } finally {
+    if (shouldRotate) {
+      await generateNewQR();
+    }
   }
-
-  const attendance = await Absensi.create({
-    date,
-    jam_masuk: time,
-    jam_keluar: null,
-    status: 'Hadir',
-    qr_code: qr_token,
-    user_id: req.auth.id,
-  });
-
-  await generateNewQR();
-
-  return {
-    code: 200,
-    message: 'Attendance recorded',
-    data: { attendance },
-  };
 };
 
 const getOpenAttendance = async (userId: string): Promise<Absensi | null> => {
