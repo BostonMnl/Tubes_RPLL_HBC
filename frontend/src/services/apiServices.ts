@@ -285,6 +285,16 @@ export const wageServices = {
       throw error;
     }
   },
+  getAllGaji: async () => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/gaji`);
+      if (!response.ok) throw new Error('Failed to fetch wages');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching wages:', error);
+      throw error;
+    }
+  },
 
   // Get wage by user ID
   getGajiByUserId: async (userId: string) => {
@@ -299,9 +309,9 @@ export const wageServices = {
   },
 
   // Update wage settings
-  updateWageSettings: async (userId: string, wageData: any) => {
+  updateGaji: async (userId: string, wageData: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/wages/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/gaji/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -315,6 +325,19 @@ export const wageServices = {
       throw error;
     }
   },
+
+  createGaji: async (wageData: {
+    user_id: string;
+    nominal: Number;
+    tanggal_berlaku: string;
+  }) => {
+    const response = await fetchWithToken(`${API_BASE_URL}/gaji`, {
+      method: 'POST',
+      body: JSON.stringify(wageData),
+    });
+    return handleResponse(response);
+  },
+
 };
 
 // ============ REIMBURSE SERVICES ============
@@ -481,3 +504,38 @@ export const getAuthHeader = (): HeadersInit => {
   };
 };
 
+
+export const qrGeneratorService = {
+  recordStart: async (time: string) => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/attendance/record-start`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ time }),
+        }
+      );
+
+      return await handleResponse(response);
+    } catch (err) {
+      console.error('Error recordStart:', err);
+      throw err;
+    }
+  },
+
+  getQR: async () => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/attendance/qr`
+      );
+
+      return await handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching QR:', error);
+      throw error;
+    }
+  },
+};
