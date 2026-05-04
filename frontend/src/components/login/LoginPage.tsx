@@ -19,6 +19,8 @@ export default function LoginPage() {
       navigate('/admin', { replace: true });
     } else if (user.jabatan === 'manager' || user.jabatan === 'supervisor') {
       navigate('/manager', { replace: true });
+    } else if (user.jabatan === 'staff') {
+      navigate('/staff', { replace: true });
     } else {
       setError('Akun tidak dikenali');
     }

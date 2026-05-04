@@ -197,5 +197,3 @@ export const getProfileId = async (
         data: { user },
     };
 };
-
-
