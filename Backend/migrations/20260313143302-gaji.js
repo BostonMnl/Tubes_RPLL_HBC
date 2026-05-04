@@ -27,7 +27,6 @@ module.exports = {
       },
       tanggal_berlaku: {
         type: Sequelize.DATEONLY,
-        unique: true,
         allowNull: false
       },
       createdAt: {
