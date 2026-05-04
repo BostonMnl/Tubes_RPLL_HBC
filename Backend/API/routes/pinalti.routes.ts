@@ -18,7 +18,7 @@ router.post('/', authMiddleware([], ['manager', 'supervisor']), uploadImage.sing
 router.get('/me', authMiddleware(), apiResponse(getMyPenalti));
 router.get('/user/:userId', authMiddleware([], ['manager', 'supervisor']), apiResponse(getPenaltiByUserId));
 router.get('/:id', authMiddleware(), apiResponse(getPenaltiById));
-router.get('/', authMiddleware(['admin']), apiResponse(getAllPenalti));
+router.get('/', authMiddleware(), apiResponse(getAllPenalti));
 router.put('/:id', authMiddleware([], ['manager', 'supervisor']), uploadImage.single('gambar'), apiResponse(updatePenalti));
 router.delete('/:id', authMiddleware(['admin']), apiResponse(deletePenalti));
 
