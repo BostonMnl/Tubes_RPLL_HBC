@@ -209,7 +209,7 @@ export default function UserPage() {
                     <td className="text-end">
                       <Button
                         size="sm" className="me-2"
-                        style={{ background: '#ffc0cb', border: 'none', borderRadius: '8px' }}
+                        style={{ background: '#ffc0cb',color: '#e93790', border: 'none', borderRadius: '8px' }}
                         onClick={() => setSelectedId(u.user_id)}
                       >
                         Detail

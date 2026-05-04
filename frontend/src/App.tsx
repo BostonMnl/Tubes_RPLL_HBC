@@ -8,7 +8,7 @@ import DashboardHome from './components/DashboardHome';
 import UserPage from './components/user/UserPage';
 import CalendarView from './components/leave/CalendarView';
 import WageSettings from './components/wage/WageSettings';
-import AdminProfile from './components/AdminProfile';
+import AdminProfile from './components/MyProfile';
 import ReimbursePage from './components/Reimburse/ReimbursePage';
 
 import LoginPage from './components/login/LoginPage';
@@ -18,9 +18,10 @@ import ManagementTree from './components/ManagementTree';
 import ManagerDashboard from './components/ManagerDashboard';
 import RoleRoute from './routes/RoleRoute';
 import UserPageManager from './components/manager/UserPageManager';
-import ReimburseStaff from './components/staff/reimburseStaff';
+import ReimburseStaff from './components/staff/ReimburseStaff';
 import CalendarViewStaff from './components/staff/CalendarViewStaff';
 import WageStaff from './components/staff/WageStaff';
+import MyProfile from './components/MyProfile';
 
 function DashboardLayout() {
   return (
@@ -57,9 +58,8 @@ export default function App() {
         <Route path="calendar" element={<CalendarView />} />
         <Route path="reimburse" element={<ReimbursePage />} />
         <Route path="wage" element={<WageSettings />} />
-        <Route path="profile" element={<AdminProfile />} />
+        <Route path="profile" element={<MyProfile />} />
         <Route path="tree" element={<ManagementTree />} />
-        <Route path="profile" element={<AdminProfile />} />
       </Route>
 
       {/* ===== MANAGER ===== */}
@@ -80,7 +80,7 @@ export default function App() {
         <Route path="reimburse" element={<ReimbursePage />} />
         <Route path="wage" element={<WageSettings />} />
         <Route path="tree" element={<ManagementTree />} />
-        <Route path="profile" element={<AdminProfile />} />
+        <Route path="profile" element={<MyProfile />} />
       </Route>
 
       <Route
@@ -97,6 +97,8 @@ export default function App() {
         <Route path="reimburse" element={<ReimburseStaff />} />
         <Route path="calendar" element={<CalendarViewStaff />} />
         <Route path="wage" element={<WageStaff />} />
+        <Route path="profile" element={<MyProfile />} />
+
 
       </Route>
     </Routes>

@@ -34,6 +34,9 @@ export default function UserDetail({ userId, goBack }: Props) {
   const [saveError, setSaveError] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  // ✅ State untuk list manager
+  const [managers, setManagers] = useState<User[]>([]);
+
   const [showResetModal, setShowResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -60,9 +63,25 @@ export default function UserDetail({ userId, goBack }: Props) {
     }
   }, [userId]);
 
+  // Fetch semua user lalu filter yang jabatan-nya manager/supervisor
+  // Sama seperti pola di UserPage: response.data?.user
+  const fetchManagers = useCallback(async () => {
+    try {
+      const response = await userServices.getAllUsers();
+      const allUsers: User[] = response.data?.user || response.user || [];
+      const managerList = allUsers.filter(
+        u => u.jabatan === 'manager' || u.jabatan === 'supervisor'
+      );
+      setManagers(managerList);
+    } catch (err) {
+      console.error('Gagal memuat list manager:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchUserData();
-  }, [fetchUserData]);
+    fetchManagers();
+  }, [fetchUserData, fetchManagers]);
 
   const attendance = [
     { date: '2026-04-20', status: 'Hadir' },
@@ -99,7 +118,9 @@ export default function UserDetail({ userId, goBack }: Props) {
       formData.append('jabatan', form.jabatan ?? '');
       formData.append('role', form.role ?? '');
       formData.append('departemen', form.departemen ?? '');
-      if (form.manager_id != null) formData.append('manager_id', form.manager_id);
+
+      // ✅ Kirim manager_id jika ada
+      if (form.manager_id) formData.append('manager_id', form.manager_id);
 
       if (imageFile) formData.append('gambar', imageFile, imageFile.name);
 
@@ -115,7 +136,6 @@ export default function UserDetail({ userId, goBack }: Props) {
     }
   };
 
-  // ✅ Handle reset password — kirim { newPassword } sesuai backend
   const handleResetPassword = async () => {
     setResetError('');
 
@@ -135,8 +155,6 @@ export default function UserDetail({ userId, goBack }: Props) {
     setResetLoading(true);
     try {
       await userServices.resetPassword(userId, { newPassword });
-
-      // Tutup modal dan reset form
       setShowResetModal(false);
       setNewPassword('');
       setConfirmPassword('');
@@ -149,7 +167,6 @@ export default function UserDetail({ userId, goBack }: Props) {
     }
   };
 
-  // ✅ Tutup modal dan bersihkan state
   const handleCloseResetModal = () => {
     setShowResetModal(false);
     setNewPassword('');
@@ -199,7 +216,7 @@ export default function UserDetail({ userId, goBack }: Props) {
           {/* ===== LEFT ===== */}
           <Col md={4} className="text-center border-end">
             <img
-              src={preview || 'https://via.placeholder.com/150'}
+              src={preview || dummny}
               alt="profile"
               style={{
                 width: 140,
@@ -217,8 +234,19 @@ export default function UserDetail({ userId, goBack }: Props) {
               <Badge bg="secondary">{display(form.departemen)}</Badge>
             </div>
 
+            {form.manager_id && !isEdit && (
+              <div className="text-muted small mt-2">
+                <span>Manager: </span>
+                <span className="fw-semibold">
+                  {(() => {
+                    const mgr = managers.find(m => m.user_id === form.manager_id);
+                    return mgr ? `${mgr.nama} (${mgr.jabatan.toUpperCase()} · ${mgr.departemen})` : form.manager_id;
+                  })()}
+                </span>
+              </div>
+            )}
+
             <div className="d-flex flex-column gap-2 mt-3 px-3">
-              {/* Tombol Edit */}
               <Button
                 size="sm"
                 onClick={() => setIsEdit(!isEdit)}
@@ -230,7 +258,6 @@ export default function UserDetail({ userId, goBack }: Props) {
                 {isEdit ? 'Cancel Edit' : '✏️ Edit'}
               </Button>
 
-              {/* ✅ Tombol Reset Password */}
               <Button
                 size="sm"
                 onClick={() => setShowResetModal(true)}
@@ -274,10 +301,6 @@ export default function UserDetail({ userId, goBack }: Props) {
                       <Form.Label>Nama</Form.Label>
                       <Form.Control name="nama" value={form.nama} onChange={handleChange} />
                     </Form.Group>
-                    {/* <Form.Group className="mb-3">
-                      <Form.Label>Email</Form.Label>
-                      <Form.Control name="email" value={form.email} onChange={handleChange} />
-                    </Form.Group> */}
                     <Form.Group className="mb-3">
                       <Form.Label>Nomor Telepon</Form.Label>
                       <Form.Control name="nomor_telepon" value={form.nomor_telepon || ''} onChange={handleChange} />
@@ -319,6 +342,36 @@ export default function UserDetail({ userId, goBack }: Props) {
                       </Form.Select>
                     </Form.Group>
 
+                    {/* Dropdown Manager */}
+                    <Form.Group className="mb-3">
+                      <Form.Label>
+                        Manager / Supervisor
+                        <span className="text-muted ms-1" style={{ fontSize: 11 }}>
+                          (opsional)
+                        </span>
+                      </Form.Label>
+                      {managers.length === 0 ? (
+                        <div
+                          className="p-2 rounded"
+                          style={{ background: '#fff5f7', border: '1px solid #ffe0e7', fontSize: 13, color: '#ff99aa' }}
+                        >
+                          Belum ada user dengan jabatan Manager atau Supervisor
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="manager_id"
+                          value={form.manager_id || ''}
+                          onChange={handleChange}
+                        >
+                          <option value="">— Tidak ada / Pilih nanti —</option>
+                          {managers.map(m => (
+                            <option key={m.user_id} value={m.user_id}>
+                              {m.nama.toUpperCase()} ({m.jabatan.toUpperCase()} · {m.departemen})
+                            </option>
+                          ))}
+                        </Form.Select>
+                      )}
+                    </Form.Group>
                   </Col>
                 </Row>
                 <div className="d-flex gap-2">

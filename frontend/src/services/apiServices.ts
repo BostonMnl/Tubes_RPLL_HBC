@@ -41,6 +41,10 @@ export const userServices = {
     const response = await fetchWithToken(`${API_BASE_URL}/managerial/users/${userId}`);
     return handleResponse(response);
   },
+  getMyProfile: async () => {
+    const response = await fetchWithToken(`${API_BASE_URL}/me`);
+    return handleResponse(response);
+  },
   getUserByIdManagerial: async (userId: string) => {
     const response = await fetchWithToken(`${API_BASE_URL}/managerial/users/${userId}`);
     return handleResponse(response);
@@ -56,6 +60,15 @@ export const userServices = {
       headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
     });
 
+    return handleResponse(response);
+  },
+
+  updateMe: async (userData: Partial<User>) => {
+    const response = await fetchWithToken(`${API_BASE_URL}/me`, {
+      method: 'PATCH',
+      body: JSON.stringify(userData),
+      headers: { 'Content-Type': 'application/json' },
+    });
     return handleResponse(response);
   },
 
@@ -87,7 +100,6 @@ export const userServices = {
     return handleResponse(response);
   },
 
-  // Delete user
   deleteUser: async (userId: string) => {
     const response = await fetchWithToken(`${API_BASE_URL}/admin/users/${userId}`, {
       method: 'DELETE',
@@ -193,18 +205,26 @@ export const leaveServices = {
       throw error;
     }
   },
-
-  // // Get leave by user ID
-  // getLeaveByUserId: async (userId: string) => {
-  //   try {
-  //     const response = await fetch(`${API_BASE_URL}/leaves/user/${userId}`);
-  //     if (!response.ok) throw new Error('Failed to fetch leaves');
-  //     return await response.json();
-  //   } catch (error) {
-  //     console.error('Error fetching leaves:', error);
-  //     throw error;
-  //   }
-  // },
+  requestLeaveForUser: async (leaveData: {
+    user_id: string;
+    tanggal_mulai: string;
+    tanggal_akhir: string;
+    jenis_cuti: string;
+    keterangan: string;
+  }) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/cuti/for-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(leaveData),
+      });
+      if (!response.ok) throw new Error('Failed to request leave for user');
+      return await response.json();
+    } catch (error) {
+      console.error('Error requesting leave for user:', error);
+      throw error;
+    }
+  },
 
   // Request leave
   requestLeave: async (leaveData: any) => {
@@ -314,7 +334,7 @@ export const reimburseServices = {
   },
   getHistoryAllReimburse: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/reimburse/history/all`);
+      const response = await fetchWithToken(`${API_BASE_URL}/reimburse/history/all`);
       if (!response.ok) throw new Error('Failed to fetch reimbursements');
       return await response.json();
     } catch (error) {
@@ -335,39 +355,61 @@ export const reimburseServices = {
   },
 
   // Request reimbursement
-  requestReimburse: async (reimburseData: any) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/reimburse`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(reimburseData),
-      });
-      if (!response.ok) throw new Error('Failed to request reimbursement');
-      return await response.json();
-    } catch (error) {
-      console.error('Error requesting reimbursement:', error);
-      throw error;
-    }
+  requestReimburse: async (reimburseData: FormData) => {
+    const response = await fetchWithToken(`${API_BASE_URL}/reimburse`, {
+      method: 'POST',
+      body: reimburseData,
+      // jangan set Content-Type — browser otomatis set boundary untuk FormData
+    });
+    return handleResponse(response);
   },
 
-  updateReimburseStatus: async (reimburseId: string, status: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/reimburses/${reimburseId}/approval`, {
+  requestReimburseForUser: async (formData: FormData) => {
+    const response = await fetchWithToken(
+      `${API_BASE_URL}/reimburse/for-user`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    return handleResponse(response);
+  },
+
+  // ===========================
+  // APPROVAL
+  // ===========================
+  updateReimburseStatus: async (
+    reimburseId: string,
+    status: string
+  ) => {
+    const response = await fetchWithToken(
+      `${API_BASE_URL}/reimburse/${reimburseId}/approval`,
+      {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status }),
-      });
-      if (!response.ok) throw new Error('Failed to update reimbursement');
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating reimbursement:', error);
-      throw error;
-    }
+        body: JSON.stringify({
+          status,
+        }),
+      }
+    );
+
+    return handleResponse(response);
   },
+
+  getMyReimburse: async () => {
+    const response =
+      await fetchWithToken(
+        `${API_BASE_URL}/reimburse/me`
+      );
+
+    return handleResponse(
+      response
+    );
+  },
+
 };
 
 // ============ AUTHENTICATION SERVICES WITH JWT ============

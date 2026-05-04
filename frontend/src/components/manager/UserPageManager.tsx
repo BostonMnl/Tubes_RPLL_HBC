@@ -25,22 +25,22 @@ export default function UserPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const currentUser = getUser();
+
   const fetchUsers = useCallback(async () => {
     setPageLoading(true);
     setError('');
 
     try {
-      const currentUser = getUser(); 
       if (!currentUser) throw new Error('User tidak ditemukan');
-      
+
       const response = await userServices.getAllUsers();
-      const userList = response.data?.user;
-      
+      const userList: UserListItem[] = response.data?.user || response.user || [];
+
       const filteredUsers = userList.filter(
-        (u: UserListItem) => u.departemen === currentUser.departemen
+        (u) => u.departemen === currentUser.departemen
       );
-      
-      console.log(filteredUsers)
+
       setUsers(filteredUsers);
     } catch (err: any) {
       setError(err.message || 'Gagal memuat data user');
@@ -53,6 +53,15 @@ export default function UserPage() {
     fetchUsers();
   }, [fetchUsers]);
 
+
+ 
+  const canViewDetail = (u: UserListItem) => {
+    if (u.role === 'admin') return false;
+    if (u.jabatan === currentUser?.jabatan) return false;
+    if (u.jabatan === 'supervisor') return false;
+    return true;
+  };
+
   if (selectedId) {
     return <UserDetail userId={selectedId} goBack={() => setSelectedId(null)} />;
   }
@@ -60,7 +69,6 @@ export default function UserPage() {
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
 
-      {/* HEADER */}
       <Card
         className="p-4 mb-4 shadow-sm"
         style={{
@@ -74,7 +82,6 @@ export default function UserPage() {
         <small>Hanya menampilkan user dalam departemen Anda</small>
       </Card>
 
-      {/* TABLE */}
       <Card className="p-4 shadow-sm" style={{ borderRadius: '16px', border: 'none' }}>
         <Table hover className="align-middle">
           <thead>
@@ -91,7 +98,7 @@ export default function UserPage() {
             <tbody>
               <tr>
                 <td colSpan={5} className="text-center">
-                  <Spinner />
+                  <Spinner animation="border" variant="danger" />
                 </td>
               </tr>
             </tbody>
@@ -105,19 +112,33 @@ export default function UserPage() {
             </tbody>
           ) : (
             <tbody>
-              {users.map(u => (
-                <tr key={u.user_id}>
-                  <td>{u.nama}</td>
-                  <td>{u.email}</td>
-                  <td>{renderJabatan(u.jabatan)}</td>
-                  <td>{u.departemen}</td>
-                  <td className="text-end">
-                    <Button size="sm" onClick={() => setSelectedId(u.user_id)}>
-                      Detail
-                    </Button>
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center text-muted py-4">
+                    Tidak ada data user di departemen Anda
                   </td>
                 </tr>
-              ))}
+              ) : (
+                users.map(u => (
+                  <tr key={u.user_id}>
+                    <td style={{ fontWeight: 500 }}>{u.nama}</td>
+                    <td>{u.email}</td>
+                    <td>{renderJabatan(u.jabatan)}</td>
+                    <td>{u.departemen}</td>
+                    <td className="text-end">
+                      {canViewDetail(u) && (
+                        <Button
+                          size="sm"
+                          style={{ background: '#ffc0cb', color : '#e93790', border: 'none', borderRadius: '8px' }}
+                          onClick={() => setSelectedId(u.user_id)}
+                        >
+                          Detail
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           )}
         </Table>

@@ -4,6 +4,13 @@ export type Reimburse = {
   keterangan: string;
   nominal: number;
   gambar: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'Pending' | 'Approved' | 'Rejected';
   tanggal: string;
+  user:User
 };
+
+
+type User={
+    nama:string;
+    jabatan:string;
+}

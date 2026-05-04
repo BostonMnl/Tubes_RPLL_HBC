@@ -6,9 +6,14 @@ export default function Topbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  // Menentukan base path berdasarkan role, sama seperti logika di Sidebar
-  const isAdmin = user?.role === 'admin';
-  const basePath = isAdmin ? '/admin' : '/manager';
+  const getBasePath = () => {
+    if (user?.role === 'admin') return '/admin';
+    const jabatan = user?.jabatan?.toLowerCase();
+    if (jabatan === 'manager' || jabatan === 'supervisor') return '/manager';
+    return '/staff';
+  };
+
+  const basePath = getBasePath();
 
   const handleLogout = async () => {
     await logout();
@@ -24,17 +29,17 @@ export default function Topbar() {
 
   return (
     <Navbar bg="white" className="px-4 shadow-sm border-bottom">
-      {/* Search Bar - Menyesuaikan dengan gaya Sidebar yang bersih */}
+      {/* Search Bar */}
       <Form className="d-flex w-50">
-        <FormControl 
-          placeholder="Search..." 
-          className="bg-light border-0" 
+        <FormControl
+          placeholder="Search..."
+          className="bg-light border-0"
           style={{ borderRadius: '8px' }}
         />
       </Form>
 
       <div className="ms-auto d-flex align-items-center gap-3">
-        {/* Info Role (Opsional, untuk memperjelas posisi user) */}
+        {/* Info Role */}
         <span className="badge bg-light text-primary border me-2">
           {user?.role?.toUpperCase()}
         </span>
@@ -58,7 +63,6 @@ export default function Topbar() {
           </Dropdown.Toggle>
 
           <Dropdown.Menu className="shadow border-0 mt-2">
-            {/* Navigasi profil sekarang mengarah ke basePath yang sesuai */}
             <Dropdown.Item onClick={() => navigate(`${basePath}/profile`)}>
               My Profile
             </Dropdown.Item>
