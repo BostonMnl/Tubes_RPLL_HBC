@@ -1547,16 +1547,32 @@
               "host": ["{{base_url}}"],
               "path": ["api", "payroll"]
             },
-            "description": "Manager generates payroll for Staff - Calculates: (Gaji + Insentif + Reimburse) - Penalti"
+            "description": "Manager generates payroll for Staff - Calculates: (Gaji + Insentif + Reimburse) - Penalti. Verify take_home_pay formula and set payroll_id for later checks."
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
                   "const response = pm.response.json();",
+                  "pm.test('Payroll payload exists', () => {",
+                  "  pm.expect(response).to.have.property('data');",
+                  "  pm.expect(response.data).to.have.property('payroll');",
+                  "});",
                   "if (response.data && response.data.payroll) {",
-                  "    pm.collectionVariables.set(\"payroll_id\", response.data.payroll.payroll_id);",
+                  "  const payroll = response.data.payroll;",
+                  "  pm.collectionVariables.set(\"payroll_id\", payroll.payroll_id);",
+                  "  pm.test('Take home pay matches formula', () => {",
+                  "    const expected = payroll.gaji_pokok + payroll.total_insentif + payroll.total_reimburse - payroll.total_penalti;",
+                  "    pm.expect(payroll.take_home_pay).to.eql(expected);",
+                  "  });",
+                  "  pm.test('Payroll linked id exists', () => {",
+                  "    pm.expect(payroll.payroll_id).to.be.a('string');",
+                  "    pm.expect(payroll.payroll_id).to.not.be.empty;",
+                  "  });",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -1590,7 +1606,25 @@
               "path": ["api", "payroll"]
             },
             "description": "Should fail with 400 - Payroll already exists for this period"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('Duplicate payroll error message is correct', () => {",
+                  "  pm.expect(response).to.have.property('message');",
+                  "  pm.expect(response.message).to.eql('Payroll for this period already exists');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "6.3 Get My Payroll",
