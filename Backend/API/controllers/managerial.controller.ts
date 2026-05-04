@@ -163,8 +163,8 @@ export const getProfileId = async (
         throw { code: 404, message: 'User not found' };
     }
 
-	const attendance = await Absensi.findOne({
-		where: { user_id: user.user_id },
+	const attendance = await Absensi.findAll({
+		where: { user_id: id },
 		attributes: ['date', 'status'],
 		order: [
 			['date', 'DESC'],
