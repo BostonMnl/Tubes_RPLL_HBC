@@ -1,4 +1,5 @@
 import { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
+import { logActivity } from '../utils/activity-log';
 
 export type ApiResponse<T = unknown> = {
   code: number;
@@ -27,13 +28,18 @@ export const apiResponse = <T>(handler: WrappedHandler<T>): RequestHandler => {
         message,
         ...(data !== undefined ? { data } : {}),
       });
+
+      const userId = (req as Request & { auth?: { id?: string } }).auth?.id ?? null;
+      void logActivity({ userId, code, message }).catch((error) => {
+        console.warn('Failed to write activity log:', error);
+      });
     } catch (error) {
       next(error);
     }
   };
 };
 
-export const apiErrorHandler: ErrorRequestHandler = (error, _req, res, next): void => {
+export const apiErrorHandler: ErrorRequestHandler = (error, req, res, next): void => {
   if (res.headersSent) {
     next(error);
     return;
@@ -65,4 +71,9 @@ export const apiErrorHandler: ErrorRequestHandler = (error, _req, res, next): vo
   });
 
   res.status(statusCode).json(payload);
+
+  const userId = (req as Request & { auth?: { id?: string } }).auth?.id ?? null;
+  void logActivity({ userId, code: statusCode, message }).catch((logError) => {
+    console.warn('Failed to write activity log:', logError);
+  });
 };
