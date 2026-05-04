@@ -3,6 +3,7 @@ import { ApiResponse } from '../middlewares/response.middleware';
 import { Op } from "sequelize";
 import { Cuti } from "models/cuti";
 import { User } from "models/user";
+import { Absensi } from "models/absensi";
 
 type AuthenticatedRequest = Request & {
     auth?: {
@@ -109,6 +110,41 @@ const fetchCutiList = async (whereClause: any): Promise<Cuti[]> => {
     });
 };
 
+const padTwo = (value: number): string => String(value).padStart(2, '0');
+
+const formatDateOnly = (date: Date): string => {
+    return `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())}`;
+};
+
+const createAbsensiForCuti = async (cuti: Cuti): Promise<void> => {
+    const status = cuti.jenis_cuti === 'Cuti_Sakit' ? 'Sakit' : 'Cuti';
+    const start = new Date(cuti.tanggal_mulai);
+    const end = new Date(cuti.tanggal_akhir);
+
+    for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+        const date = formatDateOnly(cursor);
+        const existing = await Absensi.findOne({
+            where: {
+                user_id: cuti.user_id,
+                date,
+            },
+        });
+
+        if (existing) {
+            continue;
+        }
+
+        await Absensi.create({
+            date,
+            jam_masuk: '00:00:00',
+            jam_keluar: null,
+            status,
+            qr_code: 'CUTI',
+            user_id: cuti.user_id,
+        });
+    }
+};
+
 export const createMyCutiRequest = async (
     req: AuthenticatedRequest,
     _res: Response
@@ -128,6 +164,10 @@ export const createMyCutiRequest = async (
     }
 
     const cuti = await Cuti.create(payload);
+
+    if (cuti.status === 'Approved') {
+        await createAbsensiForCuti(cuti);
+    }
 
     return {
         data: { cuti },
@@ -159,6 +199,10 @@ export const createRequestCutiForUser = async (
     payload.disetujui_oleh = req.auth.id;
 
     const cuti = await Cuti.create(payload);
+
+    if (cuti.status === 'Approved') {
+        await createAbsensiForCuti(cuti);
+    }
 
     return {
         data: { cuti },
@@ -287,6 +331,10 @@ export const approveDeclineCutiRequest = async (
     cuti.status = status;
     cuti.disetujui_oleh = req.auth.id;
     await cuti.save();
+
+    if (status === 'Approved') {
+        await createAbsensiForCuti(cuti);
+    }
 
     return {
         code: 200,
