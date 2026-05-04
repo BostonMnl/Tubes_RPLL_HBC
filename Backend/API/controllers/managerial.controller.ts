@@ -1,5 +1,6 @@
 import e, { Request, Response } from 'express';
 import { User } from '../../models/user';
+import { Absensi } from '../../models/absensi';
 import { ApiResponse } from '../middlewares/response.middleware';
 import { DEPARTEMEN_VALUES, JABATAN_VALUES, jabatanIndex } from '../utils/helper.js';
 
@@ -145,7 +146,7 @@ export const promoteUser = async (
 export const getProfileId = async (
     req: AuthenticatedRequest,
     _res: Response
-): Promise<ApiResponse<{ user: User }>> => {
+): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string } | null }>> => {
     if (!req.auth?.id) {
         throw { code: 401, message: 'Unauthorized' };
     }
@@ -162,11 +163,25 @@ export const getProfileId = async (
         throw { code: 404, message: 'User not found' };
     }
 
+	const attendance = await Absensi.findOne({
+		where: { user_id: user.user_id },
+		attributes: ['date', 'status'],
+		order: [
+			['date', 'DESC'],
+			['createdAt', 'DESC'],
+		],
+	});
+
 	if (actor.role === 'admin') {
 		return {
 			code: 200,
 			message: 'User profile fetched successfully',
-			data: { user },
+			data: {
+				user,
+				attendance: attendance
+					? { date: attendance.date, status: attendance.status }
+					: null,
+			},
 		};
 	}
 
@@ -194,7 +209,12 @@ export const getProfileId = async (
     return {
         code: 200,
         message: 'User profile fetched successfully',
-        data: { user },
+		data: {
+			user,
+			attendance: attendance
+				? { date: attendance.date, status: attendance.status }
+				: null,
+		},
     };
 };
 
