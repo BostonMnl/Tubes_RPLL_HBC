@@ -115,7 +115,7 @@ export const resetPasswordWithToken = async (
 export const getMyProfile = async (
 	req: AuthenticatedRequest,
 	_res: Response
-): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string }[] }>> => {
+): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string }[]}>> => {
 	if (!req.auth?.id) {
 		throw { code: 401, message: 'Unauthorized' };
 	}
