@@ -43,6 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+ static const String _baseUrl = "http://192.168.1.6:3000";
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,7 +68,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // 🔥 HEADER (gradient + avatar)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 30),
@@ -86,8 +87,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.white,
+
                   backgroundImage: user?.gambar != null
-                      ? NetworkImage(user!.gambar!)
+                      ? NetworkImage("$_baseUrl${user!.gambar!}")
                       : null,
                   child: user?.gambar == null
                       ? const Icon(Icons.person, size: 50, color: Colors.pink)
