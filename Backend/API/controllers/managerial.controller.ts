@@ -1,7 +1,7 @@
 import e, { Request, Response } from 'express';
 import { User } from '../../models/user';
 import { ApiResponse } from '../middlewares/response.middleware';
-import { DEPARTEMEN_VALUES, JABATAN_VALUES, departemenIndex, jabatanIndex } from '../utils/helper.js';
+import { DEPARTEMEN_VALUES, JABATAN_VALUES, jabatanIndex } from '../utils/helper.js';
 
 type AuthenticatedRequest = Request & {
 	auth?: {
@@ -177,15 +177,13 @@ export const getProfileId = async (
 	}
 
 	if (actorUser.jabatan === 'manager') {
-		const sameDepartemen =
-			departemenIndex(user.departemen) === departemenIndex(actorUser.departemen);
+		const sameDepartemen = user.departemen === actorUser.departemen;
 		if (!sameDepartemen || user.jabatan !== 'staff') {
 			throw { code: 403, message: 'Forbidden : insufficient WEWENANG' };
 		}
 	} else if (actorUser.jabatan === 'supervisor') {
 		const allowedJabatan = user.jabatan === 'staff' || user.jabatan === 'manager';
-		const sameDepartemen =
-			departemenIndex(user.departemen) === departemenIndex(actorUser.departemen);
+		const sameDepartemen = user.departemen === actorUser.departemen;
 		if (!sameDepartemen || !allowedJabatan) {
 			throw { code: 403, message: 'Forbidden : insufficient WEWENANG' };
 		}

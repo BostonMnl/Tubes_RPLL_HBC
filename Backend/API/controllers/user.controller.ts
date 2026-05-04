@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/user';
+import { Absensi } from '../../models/absensi';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
@@ -114,7 +115,7 @@ export const resetPasswordWithToken = async (
 export const getMyProfile = async (
 	req: AuthenticatedRequest,
 	_res: Response
-): Promise<ApiResponse<{ user: User }>> => {
+): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string } | null }>> => {
 	if (!req.auth?.id) {
 		throw { code: 401, message: 'Unauthorized' };
 	}
@@ -127,10 +128,24 @@ export const getMyProfile = async (
 		throw { code: 404, message: 'User not found' };
 	}
 
+	const attendance = await Absensi.findOne({
+		where: { user_id: req.auth.id },
+		attributes: ['date', 'status'],
+		order: [
+			['date', 'DESC'],
+			['createdAt', 'DESC'],
+		],
+	});
+
 	return {
 		code: 200,
 		message: 'Profile fetched successfully',
-		data: { user },
+		data: {
+			user,
+			attendance: attendance
+				? { date: attendance.date, status: attendance.status }
+				: null,
+		},
 	};
 };
 

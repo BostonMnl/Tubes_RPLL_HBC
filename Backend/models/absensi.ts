@@ -32,10 +32,10 @@ export class Absensi extends Model {
     })
     declare jam_keluar: string | null;
 
-    @Column({
-        type: DataType.ENUM('Hadir', 'Sakit', 'Cuti', 'Alpha'),
-        allowNull: false,
-    })
+            @Column({
+                type: DataType.ENUM('Hadir', 'Telat', 'Sakit', 'Cuti', 'Alpha'),
+                allowNull: false,
+            })
     declare status: string;
 
     @Column({
