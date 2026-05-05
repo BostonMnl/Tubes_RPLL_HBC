@@ -62,58 +62,39 @@ const fetchPayrollList = async (whereClause: any): Promise<Payroll[]> => {
     });
 };
 
-export const processUserPayroll = async (userId: string, bulan: number, tahun: number): Promise<Payroll | null> => {
+export const processUserPayroll = async (userId: string, gajiId: string, bulan: number, tahun: number): Promise<Payroll | null> => {
     const existingPayroll = await Payroll.findOne({
         where: { user_id: userId, bulan, tahun }
     });
-
+    
     if (existingPayroll) {
         return null;
     }
 
     await syncUnpaidLeavePenalties(userId, bulan, tahun);
 
-    // LOGIKA CUTOFF 25:
-    // Tanggal 26 Bulan Lalu
+    const gaji = await Gaji.findByPk(gajiId);
+    if (!gaji) {
+        throw { code: 404, message: 'Data gaji tidak ditemukan' };
+    }
+    
+    const gajiPokok = gaji.nominal;
+
     const startDate = new Date(tahun, bulan - 2, 26, 0, 0, 0);
-    // Tanggal 25 Bulan Ini
     const endDate = new Date(tahun, bulan - 1, 25, 23, 59, 59);
 
-    const gaji = await Gaji.findOne({
-        where: {
-            user_id: userId,
-            tanggal_berlaku: { [Op.lte]: endDate }
-        },
-        order: [['tanggal_berlaku', 'DESC'], ['createdAt', 'DESC']]
-    });
-
-    const gajiPokok = gaji ? gaji.nominal : 0;
-
     const insentifs = await Insentif.findAll({
-        where: {
-            user_id: userId,
-            payroll_id: null,
-            tanggal: { [Op.between]: [startDate, endDate] }
-        }
+        where: { user_id: userId, payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } }
     });
     const totalInsentif = insentifs.reduce((sum, item) => sum + Number(item.nominal), 0);
 
     const penaltis = await Penalti.findAll({
-        where: {
-            user_id: userId,
-            payroll_id: null,
-            tanggal: { [Op.between]: [startDate, endDate] }
-        }
+        where: { user_id: userId, payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } }
     });
     const totalPenalti = penaltis.reduce((sum, item) => sum + Number(item.nominal), 0);
 
     const reimburses = await Reimburse.findAll({
-        where: {
-            user_id: userId,
-            status: 'Approved',
-            payroll_id: null,
-            tanggal: { [Op.between]: [startDate, endDate] }
-        }
+        where: { user_id: userId, status: 'Approved', payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } }
     });
     const totalReimburse = reimburses.reduce((sum, item) => sum + Number(item.nominal), 0);
 
@@ -121,6 +102,7 @@ export const processUserPayroll = async (userId: string, bulan: number, tahun: n
 
     const payroll = await Payroll.create({
         user_id: userId,
+        gaji_id: gajiId,
         bulan,
         tahun,
         gaji_pokok: gajiPokok,
@@ -132,20 +114,9 @@ export const processUserPayroll = async (userId: string, bulan: number, tahun: n
 
     const payrollId = (payroll as any).payroll_id;
 
-    await Insentif.update(
-        { payroll_id: payrollId },
-        { where: { user_id: userId, payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } } }
-    );
-
-    await Penalti.update(
-        { payroll_id: payrollId },
-        { where: { user_id: userId, payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } } }
-    );
-
-    await Reimburse.update(
-        { payroll_id: payrollId },
-        { where: { user_id: userId, status: 'Approved', payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } } }
-    );
+    await Insentif.update({ payroll_id: payrollId }, { where: { user_id: userId, payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } } });
+    await Penalti.update({ payroll_id: payrollId }, { where: { user_id: userId, payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } } });
+    await Reimburse.update({ payroll_id: payrollId }, { where: { user_id: userId, status: 'Approved', payroll_id: null, tanggal: { [Op.between]: [startDate, endDate] } } });
 
     return payroll;
 };
@@ -155,7 +126,12 @@ export const createPayroll = async (req: AuthenticatedRequest, _res: Response): 
         throw { code: 401, message: 'Unauthorized' };
     }
 
-    const { user_id, bulan, tahun } = req.body;
+    const { user_id, gaji_id, bulan, tahun } = req.body;
+    
+    if (!gaji_id) {
+        throw { code: 400, message: 'Gaji ID tidak ditemukan dari request' };
+    }
+
     const targetUser = await User.findByPk(user_id);
 
     if (!targetUser) {
@@ -164,7 +140,7 @@ export const createPayroll = async (req: AuthenticatedRequest, _res: Response): 
 
     checkHierarchy(targetUser.jabatan, req.auth.jabatan, req.auth.role, targetUser.user_id === req.auth.id);
 
-    const payroll = await processUserPayroll(user_id, Number(bulan), Number(tahun));
+    const payroll = await processUserPayroll(user_id, gaji_id, Number(bulan), Number(tahun));
 
     if (!payroll) {
         throw { code: 400, message: 'Payroll for this period already exists' };

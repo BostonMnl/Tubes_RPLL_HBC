@@ -34,8 +34,8 @@ const checkHierarchy = (targetJabatan: string, actorJabatan: string | undefined,
     if (actorR === 'admin') return;
 
     if (isSelf) {
-        if (actorJ !== 'supervisor') {
-            throw { code: 403, message: 'Forbidden: Only Supervisor can self-manage records' };
+        if (!['supervisor', 'manager'].includes(actorJ)) {
+            throw { code: 403, message: 'Forbidden: Only Supervisor and Manager can self-manage records' };
         }
         return;
     }
@@ -177,74 +177,20 @@ export const getGajiByUserId = async (
     };
 };
 
-// export const getAllMyGaji = async (
-//     req: AuthenticatedRequest,
-//     _res: Response
-// ): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
-//     if (!req.auth?.id) throw { code: 401, message: 'Unauthorized' };
-
-//     const allGaji = await Gaji.findAll({
-//         where: { user_id: req.auth.id },
-//         order: [['tanggal_berlaku', 'DESC'], ['createdAt', 'DESC']],
-//         include: [{ model: User, as: 'user', attributes: ['nama', 'jabatan'] }]
-//     });
-
-//     const gajiByPeriod = new Map<string, Gaji>();
-//     allGaji.forEach(g => {
-//         const d = new Date(g.tanggal_berlaku);
-//         const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-//         if (!gajiByPeriod.has(key)) gajiByPeriod.set(key, g);
-//     });
-
-//     return { 
-//         data: { gaji: Array.from(gajiByPeriod.values()) }, 
-//         code: 200, 
-//         message: 'Salary history retrieved' 
-//     };
-// };
-
-// export const getAllGajiByUserId = async (
-//     req: AuthenticatedRequest,
-//     _res: Response
-// ): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
-//     if (!req.auth?.id) throw { code: 401, message: 'Unauthorized' };
-
-//     const userId = getParamId(req, 'userId');
-//     const targetUser = await User.findByPk(userId);
-//     if (!targetUser) throw { code: 404, message: 'User not found' };
-
-//     checkHierarchy(targetUser.jabatan, req.auth.jabatan, req.auth.role, userId === req.auth.id);
-
-//     const allGaji = await Gaji.findAll({
-//         where: { user_id: userId },
-//         order: [['tanggal_berlaku', 'DESC'], ['createdAt', 'DESC']]
-//     });
-
-//     const gajiByPeriod = new Map<string, Gaji>();
-//     allGaji.forEach(g => {
-//         const d = new Date(g.tanggal_berlaku);
-//         const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-//         if (!gajiByPeriod.has(key)) gajiByPeriod.set(key, g);
-//     });
-
-//     return { 
-//         data: { gaji: Array.from(gajiByPeriod.values()) }, 
-//         code: 200, 
-//         message: 'User salary history retrieved' 
-//     };
-// };
-
 export const getAllGaji = async (
     req: AuthenticatedRequest,
     _res: Response
 ): Promise<ApiResponse<{ gaji: Gaji[] }>> => {
     if (!req.auth?.id) throw { code: 401, message: 'Unauthorized' };
 
+    let targetPeriod: Date;
     const dateParam = req.query.date;
-    if (!dateParam || typeof dateParam !== 'string' || isNaN(Date.parse(dateParam))) {
-        throw { code: 400, message: 'Valid date query parameter is required' };
+    
+    if (dateParam && typeof dateParam === 'string' && !isNaN(Date.parse(dateParam))) {
+        targetPeriod = normalizeToPeriod(dateParam);
+    } else {
+        targetPeriod = normalizeToPeriod(new Date());
     }
-    const targetPeriod = normalizeToPeriod(dateParam);
 
     const allGaji = await Gaji.findAll({
         where: {
@@ -293,22 +239,16 @@ export const updateGajiTetap = async (
     const isSelf = gaji.user_id === req.auth.id;
     checkHierarchy(targetUser.jabatan, req.auth.jabatan, req.auth.role, isSelf);
 
-    const date = new Date(gaji.tanggal_berlaku);
-    const bulan = date.getMonth() + 1;
-    const tahun = date.getFullYear();
-
     const payrollExists = await Payroll.findOne({
         where: {
-            user_id: userId,
-            bulan: bulan,
-            tahun: tahun
+            gaji_id: (gaji as any).gaji_id
         }
     });
 
     if (payrollExists) {
         throw { 
             code: 400, 
-            message: 'Cannot update salary: Payroll for this period has already been generated and locked' 
+            message: 'Cannot update salary: This salary record has already been used in a generated payroll. To change the salary, please create a new Gaji record for the upcoming period.' 
         };
     }
 

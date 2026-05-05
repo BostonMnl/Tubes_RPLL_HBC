@@ -29,6 +29,16 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false
       },
+      gaji_id: {
+        type: Sequelize.UUID,
+        allowNull: false,
+        references: {
+          model: 'gaji',
+          key: 'gaji_id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
       gaji_pokok: {
         type: Sequelize.FLOAT,
         allowNull: false,
