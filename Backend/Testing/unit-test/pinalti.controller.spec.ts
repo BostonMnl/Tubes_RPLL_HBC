@@ -11,9 +11,9 @@ import {
   updatePenalti,
   deletePenalti,
 } from '../../API/controllers/pinalti.controller';
-import { Penalti } from 'models/penalti';
-import { User } from 'models/user';
-import { Gaji } from 'models/gaji';
+import { Penalti } from '../../models/penalti';
+import { User } from '../../models/user';
+import { Gaji } from '../../models/gaji';
 
 jest.mock('models/penalti', () => ({
   Penalti: {
