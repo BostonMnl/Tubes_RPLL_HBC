@@ -15,6 +15,7 @@ import penaltiRoutes from './routes/pinalti.routes';
 import payrollRoutes from './routes/payroll.routes';
 import attendanceRoutes from './routes/attendance.routes';
 import attendanceManageRoutes from './routes/attendanceManage.routes';
+import activityLogRoutes from './routes/activityLog.routes';
 import { apiErrorHandler } from './middlewares/response.middleware';
 import schedulePayrollJob from './src/cron.job';
 import scheduleAttendanceAlphaJob from './src/attendance-alpha.job';
@@ -39,6 +40,7 @@ app.use('/api/insentif', insentifRoutes);
 app.use('/api/penalti', penaltiRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/log_activity', activityLogRoutes);
 
 // Error handler (must be after routes)
 app.use(apiErrorHandler);
