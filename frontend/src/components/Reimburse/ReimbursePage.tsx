@@ -10,9 +10,7 @@ import {
   Tabs,
   Tab,
 } from 'react-bootstrap';
-
 import { useState, useEffect } from 'react';
-
 import type { Reimburse } from '../../model/Reimburse';
 import { reimburseServices, userServices } from '../../services/apiServices';
 
@@ -23,10 +21,12 @@ type AddForm = {
 };
 
 type UserOption = {
-  user_id: string;
+  user_id?: string;
+  id?: string;
   nama: string;
   jabatan: string;
   manager_id?: string;
+  managerId?: string;
 };
 
 const defaultAddForm: AddForm = {
@@ -35,9 +35,12 @@ const defaultAddForm: AddForm = {
   keterangan: '',
 };
 
+const getUId = (u: any) => u.user_id || u.id;
+const getMId = (u: any) => u.manager_id || u.managerId;
 
 export default function ReimbursePage() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const currentUserId = getUId(currentUser);
   const role = currentUser?.role?.toLowerCase();
   const jabatan = currentUser?.jabatan?.toLowerCase();
 
@@ -46,13 +49,13 @@ export default function ReimbursePage() {
   const isManager = jabatan === 'manager';
 
   const canApprove = isAdmin || isSupervisor || isManager;
-
   const canCreateForUser = isAdmin || isSupervisor || isManager;
-
 
   const [data, setData] = useState<Reimburse[]>([]);
   const [historyData, setHistoryData] = useState<Reimburse[]>([]);
   const [myData, setMyData] = useState<Reimburse[]>([]);
+  
+  const [allUsers, setAllUsers] = useState<UserOption[]>([]);
   const [subordinates, setSubordinates] = useState<UserOption[]>([]);
 
   const [selected, setSelected] = useState<Reimburse | null>(null);
@@ -68,7 +71,6 @@ export default function ReimbursePage() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
 
-
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
 
   useEffect(() => {
@@ -81,11 +83,10 @@ export default function ReimbursePage() {
       fetchMyReimburse(),
       canApprove ? fetchAllReimburse() : Promise.resolve(),
       isAdmin ? fetchHistory() : Promise.resolve(),
-      canCreateForUser ? fetchSubordinates() : Promise.resolve(),
+      canApprove || canCreateForUser ? fetchSubordinates() : Promise.resolve(),
     ]);
     setLoading(false);
   };
-
 
   const fetchMyReimburse = async () => {
     try {
@@ -117,15 +118,21 @@ export default function ReimbursePage() {
   const fetchSubordinates = async () => {
     try {
       const res = await userServices.getAllUsers();
-      const allUsers: UserOption[] = res.data?.user || res.data?.users || [];
+      let usersArray: UserOption[] = [];
+      if (Array.isArray(res)) usersArray = res;
+      else if (Array.isArray(res?.data)) usersArray = res.data;
+      else if (Array.isArray(res?.data?.users)) usersArray = res.data.users;
+      else if (Array.isArray(res?.data?.user)) usersArray = res.data.user;
+
+      setAllUsers(usersArray);
 
       if (isAdmin) {
-        setSubordinates(allUsers.filter((u) => u.user_id !== currentUser.user_id));
+        setSubordinates(usersArray.filter((u) => getUId(u) !== currentUserId));
         return;
       }
 
       const result: UserOption[] = [];
-      const queue: string[] = [currentUser.user_id];
+      const queue: string[] = [currentUserId];
       const visited = new Set<string>();
 
       while (queue.length > 0) {
@@ -133,10 +140,14 @@ export default function ReimbursePage() {
         if (visited.has(parentId)) continue;
         visited.add(parentId);
 
-        const directReports = allUsers.filter((u) => u.manager_id === parentId);
+        const directReports = usersArray.filter((u) => getMId(u) === parentId);
+
         for (const u of directReports) {
-          result.push(u);
-          queue.push(u.user_id);
+          const uid = getUId(u);
+          if (uid !== currentUserId && !result.some(x => getUId(x) === uid)) {
+            result.push(u);
+            queue.push(uid);
+          }
         }
       }
 
@@ -148,7 +159,7 @@ export default function ReimbursePage() {
 
   const canApproveItem = (item: Reimburse): boolean => {
     if (isAdmin) return true;
-    return subordinates.some((s) => s.user_id === item.user_id);
+    return subordinates.some((s) => getUId(s) === item.user_id);
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -165,10 +176,7 @@ export default function ReimbursePage() {
   const approve = (id: string) => updateStatus(id, 'Approved');
   const reject = (id: string) => updateStatus(id, 'Rejected');
 
-
-  const handleAddChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleAddChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setAddForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -222,7 +230,6 @@ export default function ReimbursePage() {
     }
   };
 
-
   const showAction = (type: 'success' | 'danger', text: string) => {
     setActionMsg({ type, text });
     setTimeout(() => setActionMsg(null), 3500);
@@ -241,40 +248,23 @@ export default function ReimbursePage() {
   };
 
   const getUserLabel = (item: Reimburse) => {
-    const user = item.user;
-    if (user) return `${user.nama} (${user.jabatan})`;
-    return user;
+    if (item.user && item.user.nama) return `${item.user.nama} (${item.user.jabatan})`;
+    const foundUser = allUsers.find((u) => getUId(u) === item.user_id);
+    if (foundUser) return `${foundUser.nama} (${foundUser.jabatan})`;
+    return `User (${String(item.user_id).substring(0, 8)}...)`;
   };
-
 
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
-
-      <Card
-        className="p-4 mb-4 border-0 shadow-sm"
-        style={{
-          borderRadius: '16px',
-          background: 'linear-gradient(135deg,#ff6fa5,#ff3d7f)',
-          color: 'white',
-        }}
-      >
+      <Card className="p-4 mb-4 border-0 shadow-sm" style={{ borderRadius: '16px', background: 'linear-gradient(135deg,#ff6fa5,#ff3d7f)', color: 'white' }}>
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
-            <h3 className="mb-0">Reimbursement</h3>
-            <small>List Request reimbursement</small>
-          </div>
+          <div><h3 className="mb-0">Reimbursement</h3><small>List Request reimbursement</small></div>
           <div className="d-flex gap-2 flex-wrap">
-            <Button
-              variant="light"
-              onClick={() => { setForUserMode(false); setShowAddModal(true); }}
-            >
+            <Button variant="light" onClick={() => { setForUserMode(false); setShowAddModal(true); }}>
               + My Request
             </Button>
             {canCreateForUser && (
-              <Button
-                variant="warning"
-                onClick={() => { setForUserMode(true); setShowAddModal(true); }}
-              >
+              <Button variant="warning" onClick={() => { setForUserMode(true); setShowAddModal(true); }}>
                 + Untuk User
               </Button>
             )}
@@ -282,36 +272,18 @@ export default function ReimbursePage() {
         </div>
       </Card>
 
-      {actionMsg && (
-        <Alert variant={actionMsg.type} dismissible onClose={() => setActionMsg(null)}>
-          {actionMsg.text}
-        </Alert>
-      )}
+      {actionMsg && <Alert variant={actionMsg.type} dismissible onClose={() => setActionMsg(null)}>{actionMsg.text}</Alert>}
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? (
-        <div className="text-center py-5">
-          <Spinner animation="border" style={{ color: '#ff3d7f' }} />
-        </div>
+        <div className="text-center py-5"><Spinner animation="border" style={{ color: '#ff3d7f' }} /></div>
       ) : (
         <Tabs defaultActiveKey="mine" className="mb-3">
-
           <Tab eventKey="mine" title="My Request">
             <Card className="p-4 border-0 shadow-sm">
-              {myData.length === 0 ? (
-                <p className="text-muted text-center py-4">Belum ada Request.</p>
-              ) : (
+              {myData.length === 0 ? <p className="text-muted text-center py-4">Belum ada Request.</p> : (
                 <Table hover responsive>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Nominal</th>
-                      <th>Tanggal</th>
-                      <th>Keterangan</th>
-                      <th>Status</th>
-                      <th>Detail</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>#</th><th>Nominal</th><th>Tanggal</th><th>Keterangan</th><th>Status</th><th>Detail</th></tr></thead>
                   <tbody>
                     {myData.map((item, idx) => (
                       <tr key={item.reimburse_id}>
@@ -320,11 +292,7 @@ export default function ReimbursePage() {
                         <td>{item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
                         <td>{display(item.keterangan)}</td>
                         <td>{renderStatus(item.status)}</td>
-                        <td>
-                          <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
-                            Lihat
-                          </Button>
-                        </td>
+                        <td><Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>Lihat</Button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -336,25 +304,9 @@ export default function ReimbursePage() {
           {canApprove && (
             <Tab eventKey="all" title="Semua Request">
               <Card className="p-4 border-0 shadow-sm">
-                <p className="text-muted small mb-3">
-                  {isAdmin
-                    ? 'Admin dapat menyetujui semua request.'
-                    : 'Anda hanya dapat menyetujui request dari bawahan langsung Anda.'}
-                </p>
-                {data.length === 0 ? (
-                  <p className="text-muted text-center py-4">Tidak ada request pending.</p>
-                ) : (
+                {data.length === 0 ? <p className="text-muted text-center py-4">Tidak ada request pending.</p> : (
                   <Table hover responsive>
-                    <thead>
-                      <tr>
-                        <th>No.</th>
-                        <th>User</th>
-                        <th>Nominal</th>
-                        <th>Tanggal</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>No.</th><th>User</th><th>Nominal</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
                     <tbody>
                       {data.map((item, idx) => {
                         const approvable = canApproveItem(item);
@@ -367,34 +319,13 @@ export default function ReimbursePage() {
                             <td>{renderStatus(item.status)}</td>
                             <td>
                               <div className="d-flex gap-1 flex-wrap">
-                                <Button size="sm" variant="outline-secondary" onClick={() => setSelected(item)}>
-                                  Detail
-                                </Button>
+                                <Button size="sm" variant="outline-secondary" onClick={() => setSelected(item)}>Detail</Button>
                                 {approvable && item.status === 'Pending' && (
                                   <>
-                                    <Button
-                                      size="sm"
-                                      variant="success"
-                                      onClick={() => approve(item.reimburse_id)}
-                                      title="Approve"
-                                    >
-                                      ✔
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="danger"
-                                      onClick={() => reject(item.reimburse_id)}
-                                      title="Reject"
-                                    >
-                                      ✖
-                                    </Button>
+                                    <Button size="sm" variant="success" onClick={() => approve(item.reimburse_id)} title="Approve">✔</Button>
+                                    <Button size="sm" variant="danger" onClick={() => reject(item.reimburse_id)} title="Reject">✖</Button>
                                   </>
                                 )}
-                                {/* {!approvable && (
-                                  <span className="text-muted small align-self-center">
-                                    Bukan bawahan Anda
-                                  </span>
-                                )} */}
                               </div>
                             </td>
                           </tr>
@@ -410,142 +341,71 @@ export default function ReimbursePage() {
           {isAdmin && (
             <Tab eventKey="history" title="History Semua">
               <Card className="p-4 border-0 shadow-sm">
-                <p className="text-muted small mb-3">
-                  Riwayat seluruh transaksi reimburse (semua status).
-                </p>
-                {historyData.length === 0 ? (
-                  <p className="text-muted text-center py-4">Belum ada history.</p>
-                ) : (
+                {historyData.length === 0 ? <p className="text-muted text-center py-4">Belum ada history.</p> : (
                   <Table hover responsive>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>User</th>
-                        <th>Jabatan</th>
-                        <th>Nominal</th>
-                        <th>Tanggal</th>
-                        <th>Keterangan</th>
-                        <th>Status</th>
-                        <th>Detail</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>#</th><th>User</th><th>Jabatan</th><th>Nominal</th><th>Tanggal</th><th>Keterangan</th><th>Status</th><th>Detail</th></tr></thead>
                     <tbody>
-                      {historyData.map((item, idx) => {
-                        return (
-                          <tr key={item.reimburse_id}>
-                            <td>{idx + 1}</td>
-                            <td>{item?.user?.nama || item.user_id}</td>
-                            <td>{item?.user?.jabatan || '-'}</td>
-                            <td>{formatRupiah(item.nominal)}</td>
-                            <td>{item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
-                            <td>{display(item.keterangan)}</td>
-                            <td>{renderStatus(item.status)}</td>
-                            <td>
-                              <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
-                                Lihat
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {historyData.map((item, idx) => (
+                        <tr key={item.reimburse_id}>
+                          <td>{idx + 1}</td>
+                          <td>{item?.user?.nama || item.user_id}</td>
+                          <td>{item?.user?.jabatan || '-'}</td>
+                          <td>{formatRupiah(item.nominal)}</td>
+                          <td>{item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
+                          <td>{display(item.keterangan)}</td>
+                          <td>{renderStatus(item.status)}</td>
+                          <td><Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>Lihat</Button></td>
+                        </tr>
+                      ))}
                     </tbody>
                   </Table>
                 )}
               </Card>
             </Tab>
           )}
-
         </Tabs>
       )}
 
       <Modal show={showAddModal} onHide={resetModal} centered>
         <Modal.Header closeButton style={{ background: '#ff3d7f', color: 'white' }}>
-          <Modal.Title>
-            {forUserMode ? '+ Request For User' : '+ My Request'}
-          </Modal.Title>
+          <Modal.Title>{forUserMode ? '+ Request For User' : '+ My Request'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {addError && <Alert variant="danger">{addError}</Alert>}
-
           {forUserMode && (
             <Form.Group className="mb-3">
               <Form.Label>Pilih User</Form.Label>
-              <Form.Select
-                value={targetUserId}
-                onChange={(e) => setTargetUserId(e.target.value)}
-              >
+              <Form.Select value={targetUserId} onChange={(e) => setTargetUserId(e.target.value)}>
                 <option value="">-- Pilih user --</option>
                 {subordinates.map((u) => (
-                  <option key={u.user_id} value={u.user_id}>
-                    {u.nama} ({u.jabatan})
-                  </option>
+                  <option key={getUId(u)} value={getUId(u)}>{u.nama} ({u.jabatan})</option>
                 ))}
               </Form.Select>
-              {subordinates.length === 0 && (
-                <Form.Text className="text-danger">
-                  Tidak ada bawahan yang tersedia.
-                </Form.Text>
-              )}
+              {subordinates.length === 0 && <Form.Text className="text-danger">Tidak ada bawahan yang tersedia.</Form.Text>}
             </Form.Group>
           )}
 
           <Form.Group className="mb-3">
             <Form.Label>Nominal (IDR)</Form.Label>
-            <Form.Control
-              name="nominal"
-              type="number"
-              min={0}
-              placeholder="Contoh: 150000"
-              value={addForm.nominal}
-              onChange={handleAddChange}
-            />
+            <Form.Control name="nominal" type="number" min={0} value={addForm.nominal} onChange={handleAddChange} />
           </Form.Group>
-
           <Form.Group className="mb-3">
             <Form.Label>Tanggal</Form.Label>
-            <Form.Control
-              name="tanggal"
-              type="date"
-              value={addForm.tanggal}
-              onChange={handleAddChange}
-            />
+            <Form.Control name="tanggal" type="date" value={addForm.tanggal} onChange={handleAddChange} />
           </Form.Group>
-
           <Form.Group className="mb-3">
             <Form.Label>Keterangan</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              name="keterangan"
-              placeholder="Deskripsi pengeluaran..."
-              value={addForm.keterangan}
-              onChange={handleAddChange}
-            />
+            <Form.Control as="textarea" rows={3} name="keterangan" value={addForm.keterangan} onChange={handleAddChange} />
           </Form.Group>
-
           <Form.Group>
             <Form.Label>Bukti (foto)</Form.Label>
             <Form.Control type="file" accept="image/*" onChange={handleAddImage} />
           </Form.Group>
-
-          {addImagePreview && (
-            <img
-              src={addImagePreview}
-              alt="preview"
-              className="mt-3"
-              style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }}
-            />
-          )}
+          {addImagePreview && <img src={addImagePreview} alt="preview" className="mt-3" style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }} />}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={resetModal} disabled={addLoading}>
-            Batal
-          </Button>
-          <Button
-            style={{ background: '#ff3d7f', border: 'none' }}
-            onClick={handleSubmit}
-            disabled={addLoading}
-          >
+          <Button variant="secondary" onClick={resetModal} disabled={addLoading}>Batal</Button>
+          <Button style={{ background: '#ff3d7f', border: 'none' }} onClick={handleSubmit} disabled={addLoading}>
             {addLoading ? <Spinner size="sm" animation="border" /> : 'Simpan'}
           </Button>
         </Modal.Footer>
@@ -562,57 +422,19 @@ export default function ReimbursePage() {
               <div>
                 <table className="table table-borderless table-sm">
                   <tbody>
-                    <tr>
-                      <th style={{ width: '35%' }}>User</th>
-                      <td>{user ? `${user.nama}` : selected.user_id}</td>
-                    </tr>
-                    {user && (
-                      <tr>
-                        <th>Jabatan</th>
-                        <td>{user.jabatan.toUpperCase()}</td>
-                      </tr>
-                    )}
-                    <tr>
-                      <th>Nominal</th>
-                      <td>{formatRupiah(selected.nominal)}</td>
-                    </tr>
-                    <tr>
-                      <th>Tanggal</th>
-                      <td>{selected.tanggal ? new Date(selected.tanggal).toLocaleDateString('id-ID') : '-'}</td>
-                    </tr>
-                    <tr>
-                      <th>Status</th>
-                      <td>{renderStatus(selected.status)}</td>
-                    </tr>
-                    <tr>
-                      <th>Keterangan</th>
-                      <td>{display(selected.keterangan)}</td>
-                    </tr>
+                    <tr><th style={{ width: '35%' }}>User</th><td>{user ? `${user.nama}` : selected.user_id}</td></tr>
+                    {user && (<tr><th>Jabatan</th><td>{user.jabatan.toUpperCase()}</td></tr>)}
+                    <tr><th>Nominal</th><td>{formatRupiah(selected.nominal)}</td></tr>
+                    <tr><th>Tanggal</th><td>{selected.tanggal ? new Date(selected.tanggal).toLocaleDateString('id-ID') : '-'}</td></tr>
+                    <tr><th>Status</th><td>{renderStatus(selected.status)}</td></tr>
+                    <tr><th>Keterangan</th><td>{display(selected.keterangan)}</td></tr>
                   </tbody>
                 </table>
-                {selected.gambar && (
-                  <img
-                    src={`http://localhost:3000${selected.gambar}`}
-                    alt="bukti"
-                    style={{ width: '100%', borderRadius: 12 }}
-                  />
-                )}
+                {selected.gambar && <img src={`http://localhost:3000${selected.gambar}`} alt="bukti" style={{ width: '100%', borderRadius: 12 }} />}
                 {canApprove && canApproveItem(selected) && selected.status === 'Pending' && (
                   <div className="d-flex gap-2 mt-3">
-                    <Button
-                      variant="success"
-                      className="flex-fill"
-                      onClick={() => { approve(selected.reimburse_id); setSelected(null); }}
-                    >
-                      ✔ Setujui
-                    </Button>
-                    <Button
-                      variant="danger"
-                      className="flex-fill"
-                      onClick={() => { reject(selected.reimburse_id); setSelected(null); }}
-                    >
-                      ✖ Tolak
-                    </Button>
+                    <Button variant="success" className="flex-fill" onClick={() => { approve(selected.reimburse_id); setSelected(null); }}>✔ Setujui</Button>
+                    <Button variant="danger" className="flex-fill" onClick={() => { reject(selected.reimburse_id); setSelected(null); }}>✖ Tolak</Button>
                   </div>
                 )}
               </div>
@@ -623,7 +445,6 @@ export default function ReimbursePage() {
           <Button variant="secondary" onClick={() => setSelected(null)}>Tutup</Button>
         </Modal.Footer>
       </Modal>
-
     </div>
   );
 }
