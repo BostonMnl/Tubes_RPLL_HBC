@@ -88,10 +88,15 @@ export default function WageDetail({ employee, currentUser, goBack }: Props) {
 
     if (currentUser.role === 'admin') return true;
 
-    if (currentUser.jabatan === 'manager') {
-      return employee.jabatan === 'staff';
+
+    // JIKA USER YANG LOGIN ADALAH STAFF ATAU MANAGER -> SEMBUNYIKAN TOMBOL
+    if (currentUser.jabatan === 'staff' || currentUser.jabatan === 'manager') {
+      return false;
     }
 
+    // Admin selalu punya akses
+
+    // Supervisor punya akses terbatas (opsional, biarkan jika supervisor boleh)
     if (currentUser.jabatan === 'supervisor') {
       return (
         employee.user_id === currentUser.user_id ||

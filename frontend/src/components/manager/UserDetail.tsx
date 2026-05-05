@@ -124,7 +124,7 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
       onPromoteSuccess?.();
       alert(`${form?.nama} berhasil naik ke ${nextJabatan}!`);
     } catch (err) {
-      setSaveError('Gagal promote jabatan');
+      setSaveError('Gagal promote jabatan (Karena bukan Hak)');
     } finally {
       setSaveLoading(false);
     }

@@ -239,7 +239,7 @@ export default function WageSettings() {
                         Detail
                       </Button>
                     )}
-                    {canEdit(emp) && (
+                    {/* {canEdit(emp) && (
                       <Button
                         size="sm"
                         variant="outline-danger"
@@ -248,7 +248,7 @@ export default function WageSettings() {
                       >
                         Edit
                       </Button>
-                    )}
+                    )} */}
                   </td>
                 </tr>
               ))}
@@ -330,7 +330,7 @@ export default function WageSettings() {
               </Table>
 
               {/* Form edit */}
-              {editTarget && (
+              {/* {editTarget && (
                 <>
                   <hr />
                   <p className="mb-3" style={{ color: '#ff3d7f', fontWeight: 600 }}>
@@ -363,7 +363,7 @@ export default function WageSettings() {
                     </Form.Group>
                   </Form>
                 </>
-              )}
+              )} */}
             </>
           )}
         </Modal.Body>
