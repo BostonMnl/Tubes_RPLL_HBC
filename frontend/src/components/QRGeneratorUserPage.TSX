@@ -19,7 +19,7 @@ export default function QRGeneratorCheckoutPage() {
       setQrValue(res.data.qr_);
     } catch (err: any) {
       console.error(err);
-      setError('Gagal mengambil QR Checkout');
+      setError('Belum Tersedia QR');
     } finally {
       setLoading(false);
     }

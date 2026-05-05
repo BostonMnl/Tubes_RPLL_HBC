@@ -4,8 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { userServices } from '../services/apiServices';
 import type { User } from '../model/User';
 import { decodeToken, getToken } from '../utils/tokenManager';
-import dummny from '../../public/dummy.jpg'
-
+import dummny from '../../public/dummy.jpg';
 
 export default function MyProfile() {
   const { user, isLoading: authLoading } = useAuth();
@@ -16,6 +15,7 @@ export default function MyProfile() {
 
   const [form, setForm] = useState<Partial<User>>({});
   const [preview, setPreview] = useState<string>('');
+  const [imageFile, setImageFile] = useState<File | null>(null); // ← NEW: simpan file asli
   const [attendance, setAttendance] = useState<any[]>([]);
 
   useEffect(() => {
@@ -32,7 +32,6 @@ export default function MyProfile() {
         }
       }
 
-
       if (!userId) {
         setError('ID User tidak ditemukan. Silakan login ulang.');
         setLoading(false);
@@ -41,13 +40,13 @@ export default function MyProfile() {
 
       try {
         const response = await userServices.getMyProfile();
-        const userData = response.data || response.data || response;
+        const userData = response.data || response;
 
         setForm(userData.user);
         setAttendance(userData.attendance);
         setPreview(
-          userData.gambar
-            ? `http://localhost:3000${userData.gambar}`
+          userData.user?.gambar
+            ? `http://localhost:3000${userData.user.gambar}`
             : dummny
         );
       } catch (err: any) {
@@ -64,34 +63,34 @@ export default function MyProfile() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // ← FIXED: simpan File asli, bukan blob URL ke form state
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      setPreview(url);
-      setForm({ ...form, gambar: url });
+      const file = e.target.files[0];
+      setImageFile(file);                        // simpan File binary
+      setPreview(URL.createObjectURL(file));     // preview pakai blob URL (hanya untuk tampilan)
     }
   };
 
+  // ← FIXED: kirim pakai FormData agar bisa upload file
   const handleSave = async () => {
     setSaving(true);
     setError('');
 
     try {
-      // Payload hanya field yang diterima API PATCH /me
-      const payload = {
-        nama: form.nama ?? '',
-        email: form.email ?? '',
-        alamat: form.alamat ?? null,
-        nomor_telepon: form.nomor_telepon ?? null,
-        gambar: form.gambar ?? null,
-      } as Partial<User>;
+      const formData = new FormData();
+      formData.append('nama', form.nama ?? '');
+      formData.append('email', form.email ?? '');
+      formData.append('alamat', form.alamat ?? '');
+      formData.append('nomor_telepon', form.nomor_telepon ?? '');
 
+      if (imageFile) {
+        formData.append('gambar', imageFile);   // kirim file binary ke server
+      }
 
-      // PATCH /me — tidak perlu userId karena backend ambil dari token
-      const response = await userServices.updateMe(payload);
+      const response = await userServices.updateMe(formData);
       const updatedUser = response.data?.user;
 
-      // Update form dengan data terbaru dari server
       if (updatedUser) {
         setForm(prev => ({ ...prev, ...updatedUser }));
         setPreview(
@@ -99,6 +98,7 @@ export default function MyProfile() {
             ? `http://localhost:3000${updatedUser.gambar}`
             : dummny
         );
+        setImageFile(null); // reset file setelah berhasil save
       }
 
       setIsEdit(false);
@@ -108,6 +108,17 @@ export default function MyProfile() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEdit(false);
+    setImageFile(null);
+    // kembalikan preview ke gambar dari server
+    setPreview(
+      form.gambar
+        ? `http://localhost:3000${form.gambar}`
+        : dummny
+    );
   };
 
   if (loading) {
@@ -124,7 +135,7 @@ export default function MyProfile() {
       case 'Hadir':
         return <Badge bg="success">Hadir</Badge>;
       case 'Telat':
-        return <Badge bg="warning">Telat</Badge>;
+        return <Badge bg="warning" text="dark">Telat</Badge>;
       case 'Alpha':
         return <Badge bg="danger">Alpha</Badge>;
       default:
@@ -149,11 +160,12 @@ export default function MyProfile() {
         <small>Manage your personal information</small>
       </Card>
 
-      <Card className="shadow-sm border-0 p-4" style={{ borderRadius: 16 }}>
+      {/* PROFILE CARD */}
+      <Card className="shadow-sm border-0 p-4 mb-4" style={{ borderRadius: 16 }}>
         {error && <Alert variant="danger">{error}</Alert>}
 
         <Row>
-          {/* LEFT */}
+          {/* LEFT — Avatar & Info Singkat */}
           <Col md={4} className="text-center border-end">
             <img
               src={preview || dummny}
@@ -170,39 +182,41 @@ export default function MyProfile() {
             {isEdit && (
               <Form.Control
                 type="file"
+                accept="image/*"
                 onChange={handleImage}
                 className="mt-3"
               />
             )}
 
-            <h5 className="fw-bold mt-3">{form.nama}</h5>
+            <h5 className="fw-bold mt-3">{form.nama || '-'}</h5>
 
             <div className="d-flex justify-content-center gap-2 mt-2">
-              <Badge bg="danger">{form.role}</Badge>
-              <Badge bg="secondary">{form.departemen}</Badge>
+              {form.role && <Badge bg="danger">{form.role}</Badge>}
+              {form.departemen && <Badge bg="secondary">{form.departemen}</Badge>}
             </div>
 
             <div className="text-muted small mt-2">
-              <p className="mb-1">{form.email}</p>
-              <p className="mb-1">{form.nomor_telepon}</p>
+              <p className="mb-1">{form.email || '-'}</p>
+              <p className="mb-1">{form.nomor_telepon || '-'}</p>
             </div>
 
             <Button
               size="sm"
               className="mt-3"
-              onClick={() => setIsEdit(!isEdit)}
+              onClick={() => isEdit ? handleCancelEdit() : setIsEdit(true)}
               style={{
                 background: isEdit
                   ? '#ccc'
                   : 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
-                border: 'none'
+                border: 'none',
+                color: isEdit ? '#333' : 'white'
               }}
             >
               {isEdit ? 'Cancel' : 'Edit Profile'}
             </Button>
           </Col>
 
-          {/* RIGHT */}
+          {/* RIGHT — Detail / Form Edit */}
           <Col md={8}>
             <h5 className="mb-3 fw-semibold" style={{ color: '#ff3d7f' }}>
               Profile Information
@@ -214,7 +228,6 @@ export default function MyProfile() {
                   <p><b>Full Name</b><br />{form.nama || '-'}</p>
                   <p><b>Email</b><br />{form.email || '-'}</p>
                 </Col>
-
                 <Col md={6}>
                   <p><b>Phone</b><br />{form.nomor_telepon || '-'}</p>
                   <p><b>Address</b><br />{form.alamat || '-'}</p>
@@ -230,6 +243,7 @@ export default function MyProfile() {
                         name="nama"
                         value={form.nama || ''}
                         onChange={handleChange}
+                        disabled
                       />
                     </Form.Group>
 
@@ -237,6 +251,7 @@ export default function MyProfile() {
                       <Form.Label>Email</Form.Label>
                       <Form.Control
                         name="email"
+                        type="email"
                         value={form.email || ''}
                         onChange={handleChange}
                       />
@@ -272,7 +287,7 @@ export default function MyProfile() {
                     border: 'none'
                   }}
                 >
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : 'Save Changes'}
                 </Button>
               </Form>
             )}
@@ -280,7 +295,7 @@ export default function MyProfile() {
         </Row>
       </Card>
 
-      {/* ===== LOG ABSENSI ===== */}
+      {/* LOG ABSENSI */}
       <Card className="p-4 shadow-sm" style={{ borderRadius: 16, border: 'none' }}>
         <h5 style={{ color: '#ff3d7f' }}>Log Absensi</h5>
         <Table hover className="mt-3 align-middle">

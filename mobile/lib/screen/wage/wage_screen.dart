@@ -13,12 +13,14 @@ class WageScreen extends StatefulWidget {
 
 class _WageScreenState extends State<WageScreen> {
   DateTime selectedDate = DateTime.now();
-  String token = "";
-  bool isLoadingToken = true;
 
-  List<Gaji> salaryData = [];
-  bool isLoading = false;
+  String token = "";
+  bool isLoading = true;
   String? errorMessage;
+
+  Gaji? gaji;
+
+  final formatCurrency = NumberFormat("#,###", "id_ID");
 
   @override
   void initState() {
@@ -30,11 +32,7 @@ class _WageScreenState extends State<WageScreen> {
     final prefs = await SharedPreferences.getInstance();
     token = prefs.getString('token') ?? '';
 
-    setState(() {
-      isLoadingToken = false;
-    });
-
-    fetchGaji(); // langsung fetch setelah token ready
+    await fetchGaji();
   }
 
   Future<void> fetchGaji() async {
@@ -46,10 +44,10 @@ class _WageScreenState extends State<WageScreen> {
     });
 
     try {
-      final data = await ApiServices.getMyGaji(token);
+      final result = await ApiServices.getMyGaji(token);
 
       setState(() {
-        salaryData = data;
+        gaji = result;
       });
     } catch (e) {
       setState(() {
@@ -62,24 +60,24 @@ class _WageScreenState extends State<WageScreen> {
     }
   }
 
-  final formatCurrency = NumberFormat("#,###", "id_ID");
+  bool get isSameMonth {
+    if (gaji == null) return false;
 
-  List<Gaji> get filteredData {
-    return salaryData.where((item) {
-      final d = item.createdAt; // pastikan field ini ada di model Gaji
-      return d.month == selectedDate.month && d.year == selectedDate.year;
-    }).toList();
+    final date = gaji!.tanggalBerlaku;
+    return date.month == selectedDate.month && date.year == selectedDate.year;
   }
 
-  int get totalSalary =>
-      filteredData.fold(0, (sum, item) => sum + item.nominal.toInt());
+  int get totalSalary =>(gaji?.nominal ?? 0).toInt();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Wage Report", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Wage Report",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.pink,
       ),
       body: Padding(
@@ -87,18 +85,18 @@ class _WageScreenState extends State<WageScreen> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : errorMessage != null
-            ? Center(child: Text(errorMessage!))
-            : Column(
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 20),
-                  _buildMonthPicker(context),
-                  const SizedBox(height: 20),
-                  _buildHistoryTitle(),
-                  const SizedBox(height: 10),
-                  Expanded(child: _buildList()),
-                ],
-              ),
+                ? Center(child: Text(errorMessage!))
+                : Column(
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 20),
+                      _buildMonthPicker(),
+                      const SizedBox(height: 20),
+                      _buildTitle(),
+                      const SizedBox(height: 10),
+                      Expanded(child: _buildContent()),
+                    ],
+                  ),
       ),
     );
   }
@@ -116,7 +114,10 @@ class _WageScreenState extends State<WageScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Total Salary", style: TextStyle(color: Colors.white70)),
+          const Text(
+            "Total Salary",
+            style: TextStyle(color: Colors.white70),
+          ),
           const SizedBox(height: 10),
           Text(
             "Rp ${formatCurrency.format(totalSalary)}",
@@ -131,7 +132,7 @@ class _WageScreenState extends State<WageScreen> {
     );
   }
 
-  Widget _buildMonthPicker(BuildContext context) {
+  Widget _buildMonthPicker() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -180,45 +181,45 @@ class _WageScreenState extends State<WageScreen> {
     return months[month - 1];
   }
 
-  Widget _buildHistoryTitle() {
+  Widget _buildTitle() {
     return const Align(
       alignment: Alignment.centerLeft,
       child: Text(
-        "Salary History",
+        "Salary Detail",
         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
 
-  Widget _buildList() {
-    if (filteredData.isEmpty) {
-      return const Center(child: Text("No data for this month"));
+  Widget _buildContent() {
+    if (gaji == null) {
+      return const Center(child: Text("No salary data"));
     }
 
-    return ListView.builder(
-      itemCount: filteredData.length,
-      itemBuilder: (context, index) {
-        final item = filteredData[index];
+    if (!isSameMonth) {
+      return const Center(child: Text("No data for selected month"));
+    }
 
-        return Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        leading: const Icon(Icons.attach_money, color: Colors.pink),
+        title: Text(
+          gaji?.user?.nama ?? "Employee",
+        ),
+        subtitle: Text(
+          "Valid from: ${gaji!.tanggalBerlaku.toString().split(' ')[0]}",
+        ),
+        trailing: Text(
+          "Rp ${formatCurrency.format(gaji!.nominal)}",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.pink,
           ),
-          child: ListTile(
-            leading: const Icon(Icons.attach_money, color: Colors.pink),
-            title: Text(
-              "${_monthName(item.createdAt.month)} ${item.createdAt.year}",
-            ),
-            trailing: Text(
-              "Rp ${formatCurrency.format(item.nominal)}",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

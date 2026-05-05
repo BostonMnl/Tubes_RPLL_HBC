@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Row, Col, Form, Button, Badge, Spinner, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Button, Badge, Spinner, Alert } from 'react-bootstrap';
 import { QRCodeCanvas } from 'qrcode.react';
 import { qrGeneratorService } from '../services/apiServices';
 
 export default function QRGeneratorPage() {
-  const [hours, setHours] = useState(23);
-  const [minutes, setMinutes] = useState(10);
-
   const [qrValue, setQrValue] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -14,19 +11,10 @@ export default function QRGeneratorPage() {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-
-  const formatTime = () => {
-    const hh = String(hours).padStart(2, '0');
-    const mm = String(minutes).padStart(2, '0');
-    return `${hh}:${mm}`;
-  };
-
-  // 🔄 GET QR tiap interval
+  // 🔄 GET QR
   const fetchQR = async () => {
     try {
       const res = await qrGeneratorService.getQR();
-
-      // ⚠️ Sesuaikan dengan backend kamu
       setQrValue(res.data.qr_token);
     } catch (err: any) {
       console.error(err);
@@ -34,32 +22,21 @@ export default function QRGeneratorPage() {
     }
   };
 
-  // ▶️ START
+  // ▶️ START (langsung generate tanpa input)
   const startGenerator = async () => {
     setError('');
-      console.log('🔥 START CLICKED');
-    // VALIDASI
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      setError('Jam / menit tidak valid');
-      return;
-    }
 
     try {
       setLoading(true);
-      
-      const time = formatTime();
 
-      // 1️⃣ POST ke backend
-      const res = await qrGeneratorService.recordStart(time);
+      // 1️⃣ trigger backend start (tanpa time)
+      const res = await qrGeneratorService.recordStart(); // <- ubah backend kalau perlu
 
-      const token = res.data.qr_token;
-
-      // tampilkan QR pertama
-      setQrValue(token);
+      setQrValue(res.data.qr_token);
 
       setIsRunning(true);
 
-      // 2️⃣ loop tiap 10 detik
+      // 2️⃣ interval refresh QR
       intervalRef.current = setInterval(() => {
         fetchQR();
       }, 10000);
@@ -78,7 +55,6 @@ export default function QRGeneratorPage() {
     setIsRunning(false);
   };
 
-  // cleanup
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -88,7 +64,6 @@ export default function QRGeneratorPage() {
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: 20 }}>
 
-      {/* HEADER */}
       <Card
         className="p-4 mb-4 shadow-sm"
         style={{
@@ -99,49 +74,17 @@ export default function QRGeneratorPage() {
         }}
       >
         <h3 className="mb-1">QR Attendance Generator</h3>
-        <small>Generate QR dari server setiap 10 detik</small>
+        <small>Auto generate QR setiap 10 detik</small>
       </Card>
 
       <Card className="shadow-sm border-0 p-4" style={{ borderRadius: 16 }}>
         {error && <Alert variant="danger">{error}</Alert>}
 
         <Row>
+
           {/* LEFT */}
           <Col md={4} className="border-end">
-            <h5 style={{ color: '#ff3d7f' }}>Set Start Time</h5>
-
-            <Row>
-              <Col>
-                <Form.Group className="mb-3">
-                  <Form.Label>Jam</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min={0}
-                    max={23}
-                    value={hours}
-                    onChange={(e) => setHours(Number(e.target.value))}
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col>
-                <Form.Group className="mb-3">
-                  <Form.Label>Menit</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min={0}
-                    max={59}
-                    value={minutes}
-                    onChange={(e) => setMinutes(Number(e.target.value))}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            {/* Preview */}
-            <p className="text-muted small">
-              Time: {formatTime()}
-            </p>
+            <h5 style={{ color: '#ff3d7f' }}>Control</h5>
 
             <div className="d-flex gap-2">
               <Button
@@ -191,6 +134,7 @@ export default function QRGeneratorPage() {
               <p className="text-muted">QR belum tersedia</p>
             )}
           </Col>
+
         </Row>
       </Card>
     </div>

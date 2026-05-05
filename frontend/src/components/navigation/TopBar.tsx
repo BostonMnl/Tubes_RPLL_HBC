@@ -30,13 +30,13 @@ export default function Topbar() {
   return (
     <Navbar bg="white" className="px-4 shadow-sm border-bottom">
       {/* Search Bar */}
-      <Form className="d-flex w-50">
+      {/* <Form className="d-flex w-50">
         <FormControl
           placeholder="Search..."
           className="bg-light border-0"
           style={{ borderRadius: '8px' }}
         />
-      </Form>
+      </Form> */}
 
       <div className="ms-auto d-flex align-items-center gap-3">
         {/* Info Role */}

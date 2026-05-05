@@ -2,16 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:mobile/data/model/Gaji.dart';
+import 'package:mobile/data/model/attendanceRecord.dart';
 import 'package:mobile/data/model/cuti.dart';
 import 'package:mobile/data/model/reimbursement.dart';
 import 'package:mobile/data/model/user.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiServices {
-  static const String _baseUrl = "http://192.168.1.7:3000/api";
+  static const String baseUrl = "http://192.168.1.7:3000";
+  static const String apiUrl = "$baseUrl/api";
 
   static Future<String> forgotPassword(String email) async {
-    final url = Uri.parse("$_baseUrl/forgot-password");
+    final url = Uri.parse("$apiUrl/forgot-password");
 
     final response = await http.post(
       url,
@@ -29,7 +31,7 @@ class ApiServices {
     required String newPassword,
   }) async {
     final response = await http.post(
-      Uri.parse("$_baseUrl/reset-password"),
+      Uri.parse("$apiUrl/reset-password"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"token": token, "newPassword": newPassword}),
     );
@@ -45,7 +47,7 @@ class ApiServices {
 
   static Future<User> getMyProfile(String token) async {
     final response = await http.get(
-      Uri.parse("$_baseUrl/me"),
+      Uri.parse("$apiUrl/me"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -69,7 +71,7 @@ class ApiServices {
     String? nomorTelepon,
     File? imageFile,
   }) async {
-    final uri = Uri.parse("$_baseUrl/me");
+    final uri = Uri.parse("$apiUrl/me");
 
     final request = http.MultipartRequest("PATCH", uri);
 
@@ -110,7 +112,7 @@ class ApiServices {
     required String email,
     required String password,
   }) async {
-    final url = Uri.parse("$_baseUrl/auth/login");
+    final url = Uri.parse("$apiUrl/auth/login");
 
     final response = await http.post(
       url,
@@ -139,7 +141,7 @@ class ApiServices {
   //Leave
   static Future<List<Cuti>> getMyCuti(String token) async {
     final response = await http.get(
-      Uri.parse("$_baseUrl/cuti/me"),
+      Uri.parse("$apiUrl/cuti/me"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -162,7 +164,7 @@ class ApiServices {
   //Reimbursement
   static Future<List<Reimbursement>> getMyReimburse(String token) async {
     final response = await http.get(
-      Uri.parse("$_baseUrl/reimburse/me"),
+      Uri.parse("$apiUrl/reimburse/me"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -189,7 +191,7 @@ class ApiServices {
     required File gambar,
     required DateTime tanggal,
   }) async {
-    final uri = Uri.parse("$_baseUrl/reimburse");
+    final uri = Uri.parse("$apiUrl/reimburse");
 
     final request = http.MultipartRequest("POST", uri);
 
@@ -229,7 +231,7 @@ class ApiServices {
     required DateTime tanggalAkhir,
   }) async {
     final response = await http.post(
-      Uri.parse("$_baseUrl/cuti"),
+      Uri.parse("$apiUrl/cuti"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -254,7 +256,7 @@ class ApiServices {
     required String qrToken,
   }) async {
     final response = await http.post(
-      Uri.parse("$_baseUrl/attendance/scan"),
+      Uri.parse("$apiUrl/attendance/scan"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -268,12 +270,12 @@ class ApiServices {
       throw Exception(data['message'] ?? "Gagal scan QR");
     }
 
-    return data['attendance']['jam_masuk']; 
+    return data['attendance']['jam_masuk'];
   }
 
-  static Future<List<Gaji>> getMyGaji(String token) async {
+  static Future<Gaji> getMyGaji(String token) async {
     final response = await http.get(
-      Uri.parse("$_baseUrl/gaji/me"),
+      Uri.parse("$apiUrl/gaji/me"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -285,9 +287,57 @@ class ApiServices {
     print("GAJI RESPONSE: $data");
 
     if (response.statusCode == 200) {
-      final List list = data['data']['gaji'];
+      return Gaji.fromJson(data['data']['gaji']);
+    } else {
+      throw Exception(data['message']);
+    }
+  }
 
-      return list.map((e) => Gaji.fromJson(e)).toList();
+  static Future<List<AttendanceRecord>> getAttendanceHistory({
+    required String token,
+  }) async {
+    final response = await http.get(
+      Uri.parse("$apiUrl/attendance/me"), // ← tanpa query param
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    print("ATTENDANCE RAW: ${response.body}");
+    print("ATTENDANCE STATUS: ${response.statusCode}");
+
+    if (response.headers['content-type']?.contains('text/html') == true) {
+      throw Exception("Endpoint tidak ditemukan.");
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      final List list =
+          data['data']['attendance'] ??
+          data['data']['absensi'] ??
+          data['data'] ??
+          [];
+      return list.map((e) => AttendanceRecord.fromJson(e)).toList();
+    } else {
+      throw Exception(data['message'] ?? 'Gagal memuat attendance');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getMyProfileFull(String token) async {
+    final response = await http.get(
+      Uri.parse("$apiUrl/me"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data['data'];
     } else {
       throw Exception(data['message']);
     }

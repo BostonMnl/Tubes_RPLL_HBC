@@ -31,17 +31,25 @@ export default function WageStaff() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!user?.user_id) return;
     const fetchGaji = async () => {
+      if (!user?.user_id) return;
+
       try {
         setLoading(true);
-        const res = await wageServices.getGajiByUserId(user.user_id);
-        const data: GajiItem[] = res.data?.gaji ?? [];
+
+        const res = await wageServices.getMyGaji();
+
+        // 🔥 FIX: API kamu return OBJECT, bukan array
+        const gajiObj = res.data?.gaji;
+
+        const data: GajiItem[] = gajiObj ? [gajiObj] : [];
+
         const sorted = [...data].sort(
           (a, b) =>
             new Date(a.tanggal_berlaku).getTime() -
             new Date(b.tanggal_berlaku).getTime()
         );
+
         setGajiList(sorted);
       } catch (err: any) {
         setError(err.message || 'Gagal memuat data gaji');
@@ -49,6 +57,7 @@ export default function WageStaff() {
         setLoading(false);
       }
     };
+
     fetchGaji();
   }, [user?.user_id]);
 
@@ -66,7 +75,11 @@ export default function WageStaff() {
   const latest = salaryData.length ? salaryData[salaryData.length - 1] : 0;
 
   const formatRp = (num: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0,
+    }).format(num);
 
   const chartData = {
     labels,
@@ -115,7 +128,7 @@ export default function WageStaff() {
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: 20 }}>
 
-      {/* ===== HEADER ===== */}
+      {/* HEADER */}
       <Card
         className="p-4 mb-4 shadow-sm"
         style={{
@@ -152,113 +165,88 @@ export default function WageStaff() {
         </Card>
       ) : (
         <>
-          {/* ===== GAJI TERKINI ===== */}
-          <Card
-            className="p-4 mb-4 shadow-sm border-0"
-            style={{ borderRadius: 16 }}
-          >
+          {/* GAJI TERKINI */}
+          <Card className="p-4 mb-4 shadow-sm border-0" style={{ borderRadius: 16 }}>
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <div style={{ fontSize: 13, color: '#ff99aa', marginBottom: 4 }}>
-                  Gaji Terkini
-                </div>
+                <div style={{ fontSize: 13, color: '#ff99aa' }}>Gaji Terkini</div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#ff3d7f' }}>
                   {formatRp(latest)}
                 </div>
-                <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: '#aaa' }}>
                   Per {labels[labels.length - 1]}
                 </div>
               </div>
-              <div
-                style={{
-                  width: 56, height: 56,
-                  borderRadius: 16,
-                  background: '#fff0f3',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 26,
-                }}
-              >
+              <div style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                background: '#fff0f3',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 26,
+              }}>
                 💰
               </div>
             </div>
           </Card>
 
-          {/* ===== STATS ===== */}
+          {/* STATS */}
           <div className="row g-3 mb-4">
             {[
               { label: 'Rata-rata', value: avg, icon: '📊' },
               { label: 'Tertinggi', value: max, icon: '📈' },
-              { label: 'Total Diterima', value: total, icon: '🏦' },
-            ].map(({ label, value, icon }) => (
-              <div className="col-4" key={label}>
-                <Card
-                  className="p-3 text-center shadow-sm border-0 h-100"
-                  style={{ borderRadius: 14, background: '#fff' }}
-                >
-                  <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
-                  <div style={{ fontSize: 11, color: '#ff99aa', marginBottom: 4 }}>
-                    {label}
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#ff3d7f' }}>
-                    {formatRp(value)}
+              { label: 'Total', value: total, icon: '🏦' },
+            ].map((item) => (
+              <div className="col-4" key={item.label}>
+                <Card className="p-3 text-center border-0 shadow-sm" style={{ borderRadius: 14 }}>
+                  <div style={{ fontSize: 20 }}>{item.icon}</div>
+                  <div style={{ fontSize: 12, color: '#ff99aa' }}>{item.label}</div>
+                  <div style={{ fontWeight: 700, color: '#ff3d7f' }}>
+                    {formatRp(item.value)}
                   </div>
                 </Card>
               </div>
             ))}
           </div>
 
-          {/* ===== CHART ===== */}
+          {/* CHART */}
           <Card className="p-4 mb-4 shadow-sm border-0" style={{ borderRadius: 16 }}>
-            <h5 className="mb-3 fw-semibold" style={{ color: '#ff3d7f' }}>
-              Tren Gaji
-            </h5>
+            <h5 style={{ color: '#ff3d7f' }}>Tren Gaji</h5>
             <div style={{ height: 280 }}>
               <Line data={chartData} options={chartOptions as any} />
             </div>
           </Card>
 
-          {/* ===== RIWAYAT ===== */}
+          {/* RIWAYAT */}
           <Card className="p-4 shadow-sm border-0" style={{ borderRadius: 16 }}>
-            <h5 className="mb-3 fw-semibold" style={{ color: '#ff3d7f' }}>
-              Riwayat Gaji
-            </h5>
-            <div className="d-flex flex-column gap-2">
-              {[...gajiList].reverse().map((item, i) => (
-                <div
-                  key={i}
-                  className="d-flex justify-content-between align-items-center p-3 rounded"
-                  style={{
-                    background: i === 0 ? '#fff0f3' : '#fafafa',
-                    border: `1px solid ${i === 0 ? '#ffe0e7' : '#f0f0f0'}`,
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>
-                      {new Date(item.tanggal_berlaku).toLocaleDateString('id-ID', {
-                        day: 'numeric', month: 'long', year: 'numeric',
-                      })}
-                    </div>
-                    {item.keterangan && (
-                      <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
-                        {item.keterangan}
-                      </div>
-                    )}
+            <h5 style={{ color: '#ff3d7f' }}>Riwayat Gaji</h5>
+
+            {gajiList.slice().reverse().map((item, i) => (
+              <div
+                key={i}
+                className="d-flex justify-content-between p-3 mt-2 rounded"
+                style={{
+                  background: i === 0 ? '#fff0f3' : '#fafafa',
+                  border: '1px solid #eee',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600 }}>
+                    {new Date(item.tanggal_berlaku).toLocaleDateString('id-ID')}
                   </div>
-                  <div className="text-end">
-                    <div style={{ fontWeight: 700, color: '#ff3d7f', fontSize: 14 }}>
-                      {formatRp(item.nominal)}
+                  {item.keterangan && (
+                    <div style={{ fontSize: 12, color: '#aaa' }}>
+                      {item.keterangan}
                     </div>
-                    {i === 0 && (
-                      <Badge
-                        style={{ background: '#fff0f3', color: '#ff3d7f', fontSize: 10 }}
-                      >
-                        Terkini
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
+                <div style={{ fontWeight: 700, color: '#ff3d7f' }}>
+                  {formatRp(item.nominal)}
+                </div>
+              </div>
+            ))}
           </Card>
         </>
       )}

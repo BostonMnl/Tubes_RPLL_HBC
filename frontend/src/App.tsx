@@ -25,6 +25,7 @@ import WageStaff from './components/staff/WageStaff';
 import MyProfile from './components/MyProfile';
 import QRGeneratorPage from './components/QRGeneratorPage';
 import QRGeneratorUserPage from './components/QRGeneratorUserPage';
+import InsentifPage from './components/insentif/Insentifpage';
 
 function DashboardLayout() {
   return (
@@ -63,8 +64,10 @@ export default function App() {
         <Route path="wage" element={<WageSettings />} />
         <Route path="profile" element={<MyProfile />} />
         <Route path="tree" element={<ManagementTree />} />
+        <Route path="qrPage" element={<QRGeneratorUserPage />} />
         <Route path="qr" element={<QRGeneratorPage />} />
         <Route path="penalti" element={<Penalti />} />
+        <Route path="insentif" element={<InsentifPage />} />
       </Route>
 
       {/* ===== MANAGER ===== */}
@@ -88,6 +91,8 @@ export default function App() {
         <Route path="tree" element={<ManagementTree />} />
         <Route path="profile" element={<MyProfile />} />
         <Route path="penalti" element={<Penalti />} />
+        <Route path="insentif" element={<InsentifPage />} />
+        <Route path="qrPage" element={<QRGeneratorUserPage />} />
       </Route>
 
       <Route
@@ -105,6 +110,8 @@ export default function App() {
         <Route path="calendar" element={<CalendarViewStaff />} />
         <Route path="wage" element={<WageStaff />} />
         <Route path="profile" element={<MyProfile />} />
+        <Route path="qrPage" element={<QRGeneratorUserPage />} />
+
 
 
       </Route>

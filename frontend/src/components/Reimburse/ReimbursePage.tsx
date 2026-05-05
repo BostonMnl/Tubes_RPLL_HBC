@@ -44,7 +44,7 @@ export default function ReimbursePage() {
   const isAdmin = role === 'admin';
   const isSupervisor = jabatan === 'supervisor';
   const isManager = jabatan === 'manager';
-  
+
   const canApprove = isAdmin || isSupervisor || isManager;
 
   const canCreateForUser = isAdmin || isSupervisor || isManager;
@@ -136,7 +136,7 @@ export default function ReimbursePage() {
         const directReports = allUsers.filter((u) => u.manager_id === parentId);
         for (const u of directReports) {
           result.push(u);
-          queue.push(u.user_id); 
+          queue.push(u.user_id);
         }
       }
 
@@ -431,24 +431,23 @@ export default function ReimbursePage() {
                     </thead>
                     <tbody>
                       {historyData.map((item, idx) => {
-    return (
-      <tr key={item.reimburse_id}>
-        <td>{idx + 1}</td>
-        {/* Safe access with optional chaining */}
-        <td>{item?.user?.nama || item.user_id}</td>
-        <td>{item?.user?.jabatan || '-'}</td> {/* Added ?. here */}
-        <td>{formatRupiah(item.nominal)}</td>
-        <td>{item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
-        <td>{display(item.keterangan)}</td>
-        <td>{renderStatus(item.status)}</td>
-        <td>
-          <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
-            Lihat
-          </Button>
-        </td>
-      </tr>
-    );
-  })}
+                        return (
+                          <tr key={item.reimburse_id}>
+                            <td>{idx + 1}</td>
+                            <td>{item?.user?.nama || item.user_id}</td>
+                            <td>{item?.user?.jabatan || '-'}</td>
+                            <td>{formatRupiah(item.nominal)}</td>
+                            <td>{item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-'}</td>
+                            <td>{display(item.keterangan)}</td>
+                            <td>{renderStatus(item.status)}</td>
+                            <td>
+                              <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
+                                Lihat
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </Table>
                 )}
@@ -558,7 +557,7 @@ export default function ReimbursePage() {
         </Modal.Header>
         <Modal.Body>
           {selected && (() => {
-            const user = (selected as any).User;
+            const user = selected.user;
             return (
               <div>
                 <table className="table table-borderless table-sm">
@@ -570,7 +569,7 @@ export default function ReimbursePage() {
                     {user && (
                       <tr>
                         <th>Jabatan</th>
-                        <td>{user.jabatan}</td>
+                        <td>{user.jabatan.toUpperCase()}</td>
                       </tr>
                     )}
                     <tr>
