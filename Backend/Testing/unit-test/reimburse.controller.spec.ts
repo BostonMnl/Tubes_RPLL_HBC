@@ -11,8 +11,8 @@ import {
   getAllReimburseHistory,
   deleteReimburseRequest,
 } from '../../API/controllers/reimburse.controller';
-import { Reimburse } from 'models/reimburse';
-import { User } from 'models/user';
+import { Reimburse } from '../../models/reimburse';
+import { User } from '../../models/user';
 
 jest.mock('models/reimburse', () => ({
   Reimburse: {
@@ -189,7 +189,7 @@ describe('Reimburse Controller', () => {
     });
 
     it('updates reimburse successfully', async () => {
-      const reimburse = { user_id: 'user-1', status: 'Pending', update: jest.fn(async () => undefined) };
+      const reimburse = { user_id: 'user-1', status: 'Pending', update: jest.fn() as jest.MockedFunction<(data: any) => Promise<void>> };
       (Reimburse.findOne as any).mockResolvedValue(reimburse);
       (User.findByPk as any).mockResolvedValue({ user_id: 'user-1', jabatan: 'staff' });
 

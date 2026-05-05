@@ -2,12 +2,12 @@ import { Response } from 'express';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Op } from 'sequelize';
 import * as payrollController from '../../API/controllers/payroll.controller';
-import { Payroll } from 'models/payroll';
-import { User } from 'models/user';
-import { Gaji } from 'models/gaji';
-import { Insentif } from 'models/insentif';
-import { Reimburse } from 'models/reimburse';
-import { Penalti } from 'models/penalti';
+import { Payroll } from '../../models/payroll';
+import { User } from '../../models/user';
+import { Gaji } from '../../models/gaji';
+import { Insentif } from '../../models/insentif';
+import { Reimburse } from '../../models/reimburse';
+import { Penalti } from '../../models/penalti';
 import { syncUnpaidLeavePenalties } from '../../API/controllers/pinalti.controller';
 
 jest.mock('models/payroll', () => ({
@@ -26,7 +26,7 @@ jest.mock('models/user', () => ({
 
 jest.mock('models/gaji', () => ({
   Gaji: {
-    findOne: jest.fn(),
+    findByPk: jest.fn(),
   },
 }));
 
@@ -64,7 +64,7 @@ describe('Payroll Controller', () => {
     it('returns null when payroll already exists', async () => {
       (Payroll.findOne as any).mockResolvedValue({ payroll_id: 'pay-1' });
 
-      const result = await payrollController.processUserPayroll('user-1', 5, 2026);
+      const result = await payrollController.processUserPayroll('user-1', 'gaji-1', 5, 2026);
 
       expect(result).toBeNull();
       expect(syncUnpaidLeavePenalties).not.toHaveBeenCalled();
@@ -72,18 +72,19 @@ describe('Payroll Controller', () => {
 
     it('creates payroll and links records', async () => {
       (Payroll.findOne as any).mockResolvedValue(null);
-      (Gaji.findOne as any).mockResolvedValue({ nominal: 1000 });
+      (Gaji.findByPk as any).mockResolvedValue({ nominal: 1000 });
       (Insentif.findAll as any).mockResolvedValue([{ nominal: 100 }, { nominal: 50 }]);
       (Penalti.findAll as any).mockResolvedValue([{ nominal: 30 }]);
       (Reimburse.findAll as any).mockResolvedValue([{ nominal: 20 }]);
       (Payroll.create as any).mockResolvedValue({ payroll_id: 'pay-1' });
 
-      const result = await payrollController.processUserPayroll('user-1', 5, 2026);
+      const result = await payrollController.processUserPayroll('user-1', 'gaji-1', 5, 2026);
 
       expect(syncUnpaidLeavePenalties).toHaveBeenCalledWith('user-1', 5, 2026);
       expect(Payroll.create).toHaveBeenCalledWith(
         expect.objectContaining({
           user_id: 'user-1',
+          gaji_id: 'gaji-1',
           bulan: 5,
           tahun: 2026,
           gaji_pokok: 1000,
@@ -117,12 +118,30 @@ describe('Payroll Controller', () => {
       });
     });
 
+    it('throws when gaji id is missing', async () => {
+      await expect(
+        payrollController.createPayroll(
+          {
+            auth: { id: 'admin-1', role: 'admin' },
+            body: { user_id: 'user-1', bulan: 5, tahun: 2026 },
+          } as any,
+          {} as Response
+        )
+      ).rejects.toEqual({
+        code: 400,
+        message: 'Gaji ID tidak ditemukan dari request',
+      });
+    });
+
     it('throws when target user not found', async () => {
       (User.findByPk as any).mockResolvedValue(null);
 
       await expect(
         payrollController.createPayroll(
-          { auth: { id: 'admin-1', role: 'admin' }, body: { user_id: 'user-1', bulan: 5, tahun: 2026 } } as any,
+          {
+            auth: { id: 'admin-1', role: 'admin' },
+            body: { user_id: 'user-1', gaji_id: 'gaji-1', bulan: 5, tahun: 2026 },
+          } as any,
           {} as Response
         )
       ).rejects.toEqual({
@@ -139,7 +158,7 @@ describe('Payroll Controller', () => {
         payrollController.createPayroll(
           {
             auth: { id: 'supervisor-1', role: 'staff', jabatan: 'supervisor' },
-            body: { user_id: 'user-1', bulan: 5, tahun: 2026 },
+            body: { user_id: 'user-1', gaji_id: 'gaji-1', bulan: 5, tahun: 2026 },
           } as any,
           {} as Response
         )
