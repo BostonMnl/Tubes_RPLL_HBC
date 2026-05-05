@@ -51,7 +51,7 @@ export const createUser = async (
             jabatan: string;
             role: string;
             departemen: string;
-            manager_id: string;
+            manager_id: string | null;
         };
     }>
 > => {
@@ -256,7 +256,7 @@ export const updateProfileById = async (
             jabatan: string;
             role: string;
             departemen: string;
-            manager_id: string;
+            manager_id: string | null;
         };
     }>
 > => {
@@ -336,7 +336,9 @@ export const updateProfileById = async (
         user.gambar = gambarFromFile;
     } else if (gambar !== undefined) {
         user.gambar = gambar;
-    }else if (manager_id != null) {
+    }
+
+    if (manager_id !== undefined) {
         user.manager_id = manager_id;
     }
 

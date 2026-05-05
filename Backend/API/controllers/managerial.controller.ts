@@ -68,9 +68,23 @@ export const promoteUser = async (
 		const { actorIdx, targetIdx } = getJabatanIndices(actorJabatan, from);
 		const toIdx = jabatanIndex(to);
         
+		if (from === to) {
+			return {
+				code: 200,
+				message: 'No changes applied',
+				data: { user: { nama: target.nama,
+								jabatan: target.jabatan, 
+								manager_id: target.manager_id } },
+			};
+		}
+
 		if (actorIdx === 1) {
 			if (target.manager_id !== actorUser.user_id) {
 				throw { code: 403, message: 'Forbidden: cross manager not allowed' };
+			}
+
+			if (!(targetIdx < toIdx && toIdx === 1)) {
+				throw { code: 403, message: 'Forbidden: insufficient wewenang' };
 			}
 		}
 
@@ -91,31 +105,21 @@ export const promoteUser = async (
 					throw { code: 403, message: 'cross supervisor not allowed' };
 				}
 			}
-		}
 
-		if (actorIdx === 1) {
-			if (!(targetIdx < toIdx && toIdx === 1)) {
-				throw { code: 403, message: 'Forbidden: insufficient wewenang' };
-			}
-		} else if (actorIdx === 2) {
 			const staffToManager = targetIdx < toIdx && toIdx === 1;
 			const managerToSupervisor = targetIdx === 1 && toIdx > targetIdx;
 			if (!staffToManager && !managerToSupervisor) {
 				throw { code: 403, message: 'Forbidden: insufficient wewenang' };
 			}
-		} else {
-			throw { code: 403, message: 'Forbidden: insufficient wewenang' };
 		}
 
-	if (from === to) {
-		return {
-			code: 200,
-			message: 'No changes applied',
-			data: { user: { nama: target.nama,
-							jabatan: target.jabatan, 
-							manager_id: target.manager_id } },
-		};
-	}
+		// if (actorIdx === 1) {
+			
+		// } else if (actorIdx === 2) {
+			
+		// } else {
+		// 	throw { code: 403, message: 'Forbidden: insufficient wewenang' };
+		// }
 
 	if (to === 'manager') {
 		if (actorIdx === 1) {
