@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
@@ -46,14 +46,12 @@ export default function LoginPage() {
     }
   };
 
-  console.log("USER LOGIN:", user);
-
   return (
     <Container
       fluid
       className="vh-100 d-flex justify-content-center align-items-center"
       style={{
-        background: 'linear-gradient(135deg, #ffe4ec, #ffd1dc)'
+        background: 'linear-gradient(135deg, #ffe4ec, #ffd1dc)',
       }}
     >
       <Card
@@ -61,7 +59,7 @@ export default function LoginPage() {
         style={{
           width: '100%',
           maxWidth: '400px',
-          borderRadius: '20px'
+          borderRadius: '20px',
         }}
       >
         <Card.Body className="p-4 p-md-5">
@@ -76,36 +74,43 @@ export default function LoginPage() {
 
           <Form onSubmit={handleLogin}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-semibold">
-                Email
-              </Form.Label>
+              <Form.Label className="fw-semibold">Email</Form.Label>
               <Form.Control
                 type="email"
                 placeholder="Masukkan email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
-                style={{
-                  borderRadius: '10px'
-                }}
+                style={{ borderRadius: '10px' }}
               />
             </Form.Group>
 
-            <Form.Group className="mb-4">
-              <Form.Label className="fw-semibold">
-                Password
-              </Form.Label>
+            <Form.Group className="mb-1">
+              <Form.Label className="fw-semibold">Password</Form.Label>
               <Form.Control
                 type="password"
                 placeholder="Masukkan password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                style={{
-                  borderRadius: '10px'
-                }}
+                style={{ borderRadius: '10px' }}
               />
             </Form.Group>
+
+            {/* Forgot password link */}
+            <div className="text-end mb-4">
+              <Link
+                to="/forgot-password"
+                style={{
+                  color: '#d63384',
+                  fontSize: '13px',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                }}
+              >
+                Lupa Password?
+              </Link>
+            </div>
 
             <Button
               size="lg"
@@ -114,7 +119,7 @@ export default function LoginPage() {
               disabled={loading}
               style={{
                 backgroundColor: '#d63384',
-                borderRadius: '10px'
+                borderRadius: '10px',
               }}
             >
               {loading ? 'Loading...' : 'Login'}

@@ -454,13 +454,9 @@ export const reimburseServices = {
 
 // ============ PINALTI SERVICES ============
 export const pinaltiServices = {
-  // Gunakan /penalti (bukan pinalti)
   getAllPinalti: async () => {
     try {
-      console.log("===================== Get All Pinalti =====================");
-      console.log("Fetching all pinalti records...");
       const response = await fetchWithToken(`${API_BASE_URL}/penalti`);
-      console.log("Response received:", response);
       if (!response.ok) throw new Error('Failed to fetch pinalti records');
       return await response.json();
     } catch (error) {
@@ -469,7 +465,6 @@ export const pinaltiServices = {
     }
   },
 
-  // Tambahkan endpoint untuk /me (Untuk Staff/User biasa)
   getMyPinalti: async () => {
     try {
       const response = await fetchWithToken(`${API_BASE_URL}/penalti/me`);
@@ -494,7 +489,6 @@ export const pinaltiServices = {
     try {
       const response = await fetchWithToken(`${API_BASE_URL}/penalti`, {
         method: 'POST',
-        // Hapus header 'Content-Type': 'application/json' jika kamu mengirim FormData (Upload Gambar)
         body: pinaltiData, 
       });
       if (!response.ok) throw new Error('Failed to create pinalti');
@@ -529,6 +523,101 @@ export const pinaltiServices = {
     }
   }
 };
+
+// ============ PAYROLL SERVICES ============
+export const payrollServices = {
+  getAllPayroll: async () => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/payroll`);
+      if (!response.ok) throw new Error('Failed to fetch payroll records');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching payroll records:', error);
+      throw error;
+    }
+  },
+
+  getMyPayroll: async () => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/payroll/me`);
+      if (!response.ok) throw new Error('Failed to fetch my payroll');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching my payroll:', error);
+      throw error;
+    }
+  },
+
+  getPayrollByUserId: async (userId: string) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/payroll/user/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch user payroll');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching user payroll:', error);
+      throw error;
+    }
+  },
+
+  generatePayroll: async (payrollData: any) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/payroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payrollData),
+      });
+      
+      if (!response.ok) {
+         const errorData = await response.json();
+         throw new Error(errorData.message || 'Failed to generate payroll');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error generating payroll:', error);
+      throw error;
+    }
+  },
+
+  updatePayrollStatus: async (payrollId: string, statusData: any) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/payroll/${payrollId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(statusData),
+      });
+      if (!response.ok) throw new Error('Failed to update payroll status');
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating payroll status:', error);
+      throw error;
+    }
+  },
+
+  getPayrollById: async (payrollId: string) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/payroll/${payrollId}`);
+      if (!response.ok) throw new Error('Failed to fetch payroll details');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching payroll details:', error);
+      throw error;
+    }
+  },
+  
+  deletePayroll: async (payrollId: string) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/payroll/${payrollId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete payroll');
+      return await response.json();
+    } catch (error) {
+      console.error('Error deleting payroll:', error);
+      throw error;
+    }
+  }
+};
+
 
 // ============ AUTHENTICATION SERVICES WITH JWT ============
 export const authServices = {
