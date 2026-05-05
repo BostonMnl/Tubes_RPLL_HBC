@@ -9,22 +9,27 @@ export default function QRGeneratorCheckoutPage() {
   const [error, setError] = useState('');
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFetching = useRef(false);
 
   const fetchCheckoutQR = async () => {
+    if (isFetching.current) return;
+    isFetching.current = true;
+
     try {
       setError('');
 
       const res = await qrGeneratorService.getCheckoutQR();
 
-      setQrValue(res.data.qr_);
-    } catch (err: any) {
-      console.error(err);
+      if (res?.data?.qr_code) {
+        setQrValue(res.data.qr_code);
+      }
+    } catch (err) {
       setError('Belum Tersedia QR');
     } finally {
+      isFetching.current = false;
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchCheckoutQR();
 
@@ -70,6 +75,7 @@ export default function QRGeneratorCheckoutPage() {
             ) : qrValue ? (
               <>
                 <QRCodeCanvas
+                  key={qrValue}
                   value={qrValue}
                   size={260}
                   bgColor="#ffffff"

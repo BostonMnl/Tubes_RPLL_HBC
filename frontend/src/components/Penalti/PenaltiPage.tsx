@@ -13,9 +13,6 @@ import {
 import { useState, useEffect } from 'react';
 import { pinaltiServices, userServices } from '../../services/apiServices';
 
-// =========================
-// TYPES
-// =========================
 interface Penalti {
   penalti_id: string;
   user_id: string;
@@ -33,10 +30,12 @@ interface Penalti {
 }
 
 type UserOption = {
-  user_id: string;
+  user_id?: string;
+  id?: string;
   nama: string;
   jabatan: string;
   manager_id?: string;
+  managerId?: string;
 };
 
 type AddForm = {
@@ -57,9 +56,12 @@ const defaultAddForm: AddForm = {
 
 const JENIS_OPTIONS = ['Cuti Tidak Berbayar', 'Mengrusak', 'Telat Masuk'];
 
+const getUId = (u: any) => u.user_id || u.id;
+const getMId = (u: any) => u.manager_id || u.managerId;
+
 export default function PenaltiPage() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const currentUserId = currentUser.id || currentUser.user_id;
+  const currentUserId = getUId(currentUser);
   const role = currentUser?.role?.toLowerCase();
   const jabatan = currentUser?.jabatan?.toLowerCase();
 
@@ -125,59 +127,49 @@ export default function PenaltiPage() {
     }
   };
 
-  // ← UPDATED: filter subordinates berdasarkan role
   const fetchSubordinates = async () => {
     try {
       const res = await userServices.getAllUsers();
-      const usersArray: UserOption[] = res.data?.user || res.data?.users || [];
+      let usersArray: UserOption[] = [];
+      if (Array.isArray(res)) usersArray = res;
+      else if (Array.isArray(res?.data)) usersArray = res.data;
+      else if (Array.isArray(res?.data?.users)) usersArray = res.data.users;
+      else if (Array.isArray(res?.data?.user)) usersArray = res.data.user;
+
       setAllUsers(usersArray);
 
-      let filtered: UserOption[] = [];
-
       if (isAdmin) {
-        // Admin bisa assign ke semua user kecuali diri sendiri
-        filtered = usersArray.filter((u) => u.user_id !== currentUserId);
-
-      } else if (isManager) {
-        // Manager hanya bisa assign ke bawahannya langsung (yang manager_id = currentUserId)
-        filtered = usersArray.filter(
-          (u) => u.manager_id === currentUserId && u.user_id !== currentUserId
-        );
-
-      } else if (isSupervisor) {
-        // Supervisor bisa ke direct reports (manager) + indirect (bawahan dari manager tsb)
-        const directReports = usersArray.filter(
-          (u) => u.manager_id === currentUserId && u.user_id !== currentUserId
-        );
-
-        // Kumpulkan semua manager_id dari direct reports yang jabatannya manager
-        const managerIds = directReports
-          .filter((u) => u.jabatan?.toLowerCase() === 'manager')
-          .map((u) => u.user_id);
-
-        // Ambil bawahan dari manager-manager tersebut
-        const indirectReports = usersArray.filter(
-          (u) =>
-            managerIds.includes(u.manager_id || '') &&
-            u.user_id !== currentUserId
-        );
-
-        // Gabung & deduplicate
-        const combined = [...directReports, ...indirectReports];
-        filtered = combined.filter(
-          (u, idx, self) => self.findIndex((x) => x.user_id === u.user_id) === idx
-        );
+        setSubordinates(usersArray.filter((u) => getUId(u) !== currentUserId));
+        return;
       }
 
-      setSubordinates(filtered);
+      const result: UserOption[] = [];
+      const queue: string[] = [currentUserId];
+      const visited = new Set<string>();
+
+      while (queue.length > 0) {
+        const parentId = queue.shift()!;
+        if (visited.has(parentId)) continue;
+        visited.add(parentId);
+
+        const directReports = usersArray.filter((u) => getMId(u) === parentId);
+
+        for (const u of directReports) {
+          const uid = getUId(u);
+          if (uid !== currentUserId && !result.some(x => getUId(x) === uid)) {
+            result.push(u);
+            queue.push(uid);
+          }
+        }
+      }
+
+      setSubordinates(result);
     } catch (err) {
       console.error('Gagal memuat subordinates:', err);
     }
   };
 
-  const handleAddChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleAddChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setAddForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -282,7 +274,6 @@ export default function PenaltiPage() {
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num || 0);
 
   const display = (value: any) => value || '-';
-
   const isLocked = (payroll_id?: string | null) => !!payroll_id;
 
   const renderStatus = (payroll_id?: string | null) => {
@@ -292,42 +283,24 @@ export default function PenaltiPage() {
 
   const getUserLabel = (item: Penalti) => {
     if (item.user?.nama) return `${item.user.nama} (${item.user.jabatan})`;
-    const foundUser = allUsers.find((u) => u.user_id === item.user_id);
+    const foundUser = allUsers.find((u) => getUId(u) === item.user_id);
     if (foundUser) return `${foundUser.nama} (${foundUser.jabatan})`;
-    return `User Terhapus (${item.user_id.substring(0, 8)}...)`;
+    return `User (${item.user_id.substring(0, 8)}...)`;
   };
 
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
-
-      {/* HEADER */}
-      <Card
-        className="p-4 mb-4 border-0 shadow-sm"
-        style={{
-          borderRadius: '16px',
-          background: 'linear-gradient(135deg,#ff6fa5,#ff3d7f)',
-          color: 'white',
-        }}
-      >
+      <Card className="p-4 mb-4 border-0 shadow-sm" style={{ borderRadius: '16px', background: 'linear-gradient(135deg,#ff6fa5,#ff3d7f)', color: 'white' }}>
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
-            <h3 className="mb-0">Penalti</h3>
-            <small>List Request Penalti &amp; Potongan</small>
-          </div>
+          <div><h3 className="mb-0">Penalti</h3><small>List Request Penalti &amp; Potongan</small></div>
           <div className="d-flex gap-2 flex-wrap">
             {(isAdmin || isSupervisor) && (
-              <Button
-                variant="light"
-                onClick={() => { setForUserMode(false); setShowAddModal(true); }}
-              >
+              <Button variant="light" onClick={() => { setForUserMode(false); setShowAddModal(true); }}>
                 + Penalti Sendiri
               </Button>
             )}
             {canCreateForUser && (
-              <Button
-                variant="warning"
-                onClick={() => { setForUserMode(true); setShowAddModal(true); }}
-              >
+              <Button variant="warning" onClick={() => { setForUserMode(true); setShowAddModal(true); }}>
                 + Untuk User
               </Button>
             )}
@@ -335,53 +308,27 @@ export default function PenaltiPage() {
         </div>
       </Card>
 
-      {actionMsg && (
-        <Alert variant={actionMsg.type} dismissible onClose={() => setActionMsg(null)}>
-          {actionMsg.text}
-        </Alert>
-      )}
+      {actionMsg && <Alert variant={actionMsg.type} dismissible onClose={() => setActionMsg(null)}>{actionMsg.text}</Alert>}
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? (
-        <div className="text-center py-5">
-          <Spinner animation="border" style={{ color: '#ff3d7f' }} />
-        </div>
+        <div className="text-center py-5"><Spinner animation="border" style={{ color: '#ff3d7f' }} /></div>
       ) : (
         <Tabs defaultActiveKey="mine" className="mb-3">
-
-          {/* TAB: PENALTI SAYA */}
           <Tab eventKey="mine" title="Penalti Saya">
             <Card className="p-4 border-0 shadow-sm">
-              {myData.length === 0 ? (
-                <p className="text-muted text-center py-4">Belum ada penalti untuk Anda.</p>
-              ) : (
+              {myData.length === 0 ? <p className="text-muted text-center py-4">Belum ada penalti untuk Anda.</p> : (
                 <Table hover responsive>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Jenis</th>
-                      <th>Nominal</th>
-                      <th>Tanggal</th>
-                      <th>Status</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>#</th><th>Jenis</th><th>Nominal</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
                   <tbody>
                     {myData.map((item, idx) => (
-                      <tr
-                        key={item.penalti_id}
-                        style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}
-                      >
+                      <tr key={item.penalti_id} style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}>
                         <td>{idx + 1}</td>
                         <td className="fw-semibold">{item.jenis}</td>
                         <td>{formatRupiah(item.nominal)}</td>
                         <td>{item.tanggal ? item.tanggal.split('T')[0] : '-'}</td>
                         <td>{renderStatus(item.payroll_id)}</td>
-                        <td>
-                          <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
-                            Detail
-                          </Button>
-                        </td>
+                        <td><Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>Detail</Button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -390,47 +337,22 @@ export default function PenaltiPage() {
             </Card>
           </Tab>
 
-          {/* TAB: PENALTI BAWAHAN */}
           {canManageOthers && (
             <Tab eventKey="all" title="Penalti Bawahan">
               <Card className="p-4 border-0 shadow-sm">
-                <p className="text-muted small mb-3">
-                  {isAdmin
-                    ? 'Admin dapat melihat dan mengelola semua penalti.'
-                    : 'Anda hanya dapat melihat dan mengelola penalti dari bawahan Anda.'}
-                </p>
-                {data.length === 0 ? (
-                  <p className="text-muted text-center py-4">Tidak ada data penalti bawahan.</p>
-                ) : (
+                {data.length === 0 ? <p className="text-muted text-center py-4">Tidak ada data penalti bawahan.</p> : (
                   <Table hover responsive>
-                    <thead>
-                      <tr>
-                        <th>No.</th>
-                        <th>User</th>
-                        <th>Jenis</th>
-                        <th>Nominal</th>
-                        <th>Tanggal</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>No.</th><th>User</th><th>Jenis</th><th>Nominal</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
                     <tbody>
                       {data.map((item, idx) => (
-                        <tr
-                          key={item.penalti_id}
-                          style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}
-                        >
+                        <tr key={item.penalti_id} style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}>
                           <td>{idx + 1}</td>
                           <td>{getUserLabel(item)}</td>
                           <td>{item.jenis}</td>
                           <td>{formatRupiah(item.nominal)}</td>
                           <td>{item.tanggal ? item.tanggal.split('T')[0] : '-'}</td>
                           <td>{renderStatus(item.payroll_id)}</td>
-                          <td>
-                            <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
-                              Detail
-                            </Button>
-                          </td>
+                          <td><Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>Detail</Button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -440,29 +362,12 @@ export default function PenaltiPage() {
             </Tab>
           )}
 
-          {/* TAB: HISTORY SEMUA (Admin only) */}
           {isAdmin && (
             <Tab eventKey="history" title="History Semua">
               <Card className="p-4 border-0 shadow-sm">
-                <p className="text-muted small mb-3">
-                  Riwayat seluruh penalti (termasuk yang terkunci).
-                </p>
-                {historyData.length === 0 ? (
-                  <p className="text-muted text-center py-4">Belum ada history.</p>
-                ) : (
+                {historyData.length === 0 ? <p className="text-muted text-center py-4">Belum ada history.</p> : (
                   <Table hover responsive>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>User</th>
-                        <th>Jenis</th>
-                        <th>Nominal</th>
-                        <th>Tanggal</th>
-                        <th>Keterangan</th>
-                        <th>Status</th>
-                        <th>Detail</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>#</th><th>User</th><th>Jenis</th><th>Nominal</th><th>Tanggal</th><th>Keterangan</th><th>Status</th><th>Detail</th></tr></thead>
                     <tbody>
                       {historyData.map((item, idx) => (
                         <tr key={item.penalti_id}>
@@ -473,11 +378,7 @@ export default function PenaltiPage() {
                           <td>{item.tanggal ? item.tanggal.split('T')[0] : '-'}</td>
                           <td>{display(item.keterangan)}</td>
                           <td>{renderStatus(item.payroll_id)}</td>
-                          <td>
-                            <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
-                              Lihat
-                            </Button>
-                          </td>
+                          <td><Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>Lihat</Button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -486,39 +387,25 @@ export default function PenaltiPage() {
               </Card>
             </Tab>
           )}
-
         </Tabs>
       )}
 
-      {/* MODAL CREATE */}
       <Modal show={showAddModal} onHide={resetModal} centered>
         <Modal.Header closeButton style={{ background: '#ff3d7f', color: 'white' }}>
-          <Modal.Title>
-            {forUserMode ? '+ Penalti Untuk User' : '+ Penalti Sendiri'}
-          </Modal.Title>
+          <Modal.Title>{forUserMode ? '+ Penalti Untuk User' : '+ Penalti Sendiri'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {addError && <Alert variant="danger">{addError}</Alert>}
-
           {forUserMode && (
             <Form.Group className="mb-3">
               <Form.Label>Pilih User</Form.Label>
-              <Form.Select
-                value={targetUserId}
-                onChange={(e) => setTargetUserId(e.target.value)}
-              >
+              <Form.Select value={targetUserId} onChange={(e) => setTargetUserId(e.target.value)}>
                 <option value="">-- Pilih user --</option>
                 {subordinates.map((u) => (
-                  <option key={u.user_id} value={u.user_id}>
-                    {u.nama} ({u.jabatan})
-                  </option>
+                  <option key={getUId(u)} value={getUId(u)}>{u.nama} ({u.jabatan})</option>
                 ))}
               </Form.Select>
-              {subordinates.length === 0 && (
-                <Form.Text className="text-danger">
-                  Tidak ada bawahan yang tersedia.
-                </Form.Text>
-              )}
+              {subordinates.length === 0 && <Form.Text className="text-danger">Tidak ada bawahan yang tersedia.</Form.Text>}
             </Form.Group>
           )}
 
@@ -531,49 +418,24 @@ export default function PenaltiPage() {
 
           <Form.Group className="mb-3">
             <Form.Label>Nominal (IDR)</Form.Label>
-            <Form.Control
-              name="nominal"
-              type="number"
-              min={0}
-              placeholder="Contoh: 150000"
-              value={addForm.nominal}
-              onChange={handleAddChange}
-            />
+            <Form.Control name="nominal" type="number" min={0} value={addForm.nominal} onChange={handleAddChange} />
           </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>Tanggal</Form.Label>
-            <Form.Control
-              name="tanggal"
-              type="date"
-              value={addForm.tanggal}
-              onChange={handleAddChange}
-            />
+            <Form.Control name="tanggal" type="date" value={addForm.tanggal} onChange={handleAddChange} />
           </Form.Group>
 
           {addForm.jenis === 'Cuti Tidak Berbayar' && (
             <Form.Group className="mb-3">
               <Form.Label>Jumlah Hari</Form.Label>
-              <Form.Control
-                type="number"
-                name="jumlah_hari"
-                min={1}
-                value={addForm.jumlah_hari}
-                onChange={handleAddChange}
-              />
+              <Form.Control type="number" name="jumlah_hari" min={1} value={addForm.jumlah_hari} onChange={handleAddChange} />
             </Form.Group>
           )}
 
           <Form.Group className="mb-3">
             <Form.Label>Keterangan</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              name="keterangan"
-              placeholder="Deskripsi..."
-              value={addForm.keterangan}
-              onChange={handleAddChange}
-            />
+            <Form.Control as="textarea" rows={3} name="keterangan" value={addForm.keterangan} onChange={handleAddChange} />
           </Form.Group>
 
           <Form.Group>
@@ -581,106 +443,42 @@ export default function PenaltiPage() {
             <Form.Control type="file" accept="image/*" onChange={handleAddImage} />
           </Form.Group>
 
-          {addImagePreview && (
-            <img
-              src={addImagePreview}
-              alt="preview"
-              className="mt-3"
-              style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }}
-            />
-          )}
+          {addImagePreview && <img src={addImagePreview} alt="preview" className="mt-3" style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }} />}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={resetModal} disabled={addLoading}>
-            Batal
-          </Button>
-          <Button
-            style={{ background: '#ff3d7f', border: 'none' }}
-            onClick={handleSubmit}
-            disabled={addLoading}
-          >
+          <Button variant="secondary" onClick={resetModal} disabled={addLoading}>Batal</Button>
+          <Button style={{ background: '#ff3d7f', border: 'none' }} onClick={handleSubmit} disabled={addLoading}>
             {addLoading ? <Spinner size="sm" animation="border" /> : 'Simpan'}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* MODAL DETAIL / EDIT */}
       <Modal show={!!selected} onHide={() => { setSelected(null); setEditMode(false); }} centered>
         <Modal.Header closeButton style={{ background: '#ff3d7f', color: 'white' }}>
           <Modal.Title>{editMode ? '✏️ Edit Penalti' : 'Detail Penalti'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {addError && <Alert variant="danger">{addError}</Alert>}
-
           {selected && !editMode && (
             <div>
               <table className="table table-borderless table-sm">
                 <tbody>
-                  <tr>
-                    <th style={{ width: '35%' }}>User</th>
-                    <td>{getUserLabel(selected)}</td>
-                  </tr>
-                  <tr>
-                    <th>Jenis</th>
-                    <td>{selected.jenis}</td>
-                  </tr>
-                  <tr>
-                    <th>Nominal</th>
-                    <td>{formatRupiah(selected.nominal)}</td>
-                  </tr>
-                  <tr>
-                    <th>Tanggal</th>
-                    <td>
-                      {selected.tanggal
-                        ? new Date(selected.tanggal).toLocaleDateString('id-ID')
-                        : '-'}
-                    </td>
-                  </tr>
-                  {selected.jenis === 'Cuti Tidak Berbayar' && selected.jumlah_hari && (
-                    <tr>
-                      <th>Jumlah Hari</th>
-                      <td>{selected.jumlah_hari} hari</td>
-                    </tr>
-                  )}
-                  <tr>
-                    <th>Keterangan</th>
-                    <td>{display(selected.keterangan)}</td>
-                  </tr>
-                  <tr>
-                    <th>Status Payroll</th>
-                    <td>{renderStatus(selected.payroll_id)}</td>
-                  </tr>
+                  <tr><th style={{ width: '35%' }}>User</th><td>{getUserLabel(selected)}</td></tr>
+                  <tr><th>Jenis</th><td>{selected.jenis}</td></tr>
+                  <tr><th>Nominal</th><td>{formatRupiah(selected.nominal)}</td></tr>
+                  <tr><th>Tanggal</th><td>{selected.tanggal ? new Date(selected.tanggal).toLocaleDateString('id-ID') : '-'}</td></tr>
+                  {selected.jenis === 'Cuti Tidak Berbayar' && selected.jumlah_hari && (<tr><th>Jumlah Hari</th><td>{selected.jumlah_hari} hari</td></tr>)}
+                  <tr><th>Keterangan</th><td>{display(selected.keterangan)}</td></tr>
+                  <tr><th>Status Payroll</th><td>{renderStatus(selected.payroll_id)}</td></tr>
                 </tbody>
               </table>
 
-              {selected.gambar && (
-                <img
-                  src={`http://localhost:3000${selected.gambar.startsWith('/') ? '' : '/'}${selected.gambar}`}
-                  alt="bukti"
-                  style={{ width: '100%', borderRadius: 12, border: '1px solid #ddd' }}
-                />
-              )}
+              {selected.gambar && <img src={`http://localhost:3000${selected.gambar.startsWith('/') ? '' : '/'}${selected.gambar}`} alt="bukti" style={{ width: '100%', borderRadius: 12, border: '1px solid #ddd' }} />}
 
               {!isLocked(selected.payroll_id) && (
                 <div className="d-flex gap-2 mt-3">
-                  <Button
-                    variant="warning"
-                    className="flex-fill"
-                    onClick={() => {
-                      setAddImagePreview('');
-                      setAddImageFile(null);
-                      setEditMode(true);
-                    }}
-                  >
-                    ✏️ Edit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    className="flex-fill"
-                    onClick={() => remove(selected.penalti_id)}
-                  >
-                    🗑 Hapus
-                  </Button>
+                  <Button variant="warning" className="flex-fill" onClick={() => { setAddImagePreview(''); setAddImageFile(null); setEditMode(true); }}>✏️ Edit</Button>
+                  <Button variant="danger" className="flex-fill" onClick={() => remove(selected.penalti_id)}>🗑 Hapus</Button>
                 </div>
               )}
             </div>
@@ -690,97 +488,47 @@ export default function PenaltiPage() {
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>Jenis Penalti</Form.Label>
-                <Form.Select
-                  value={selected.jenis}
-                  onChange={(e) => setSelected({ ...selected, jenis: e.target.value })}
-                >
+                <Form.Select value={selected.jenis} onChange={(e) => setSelected({ ...selected, jenis: e.target.value })}>
                   {JENIS_OPTIONS.map((j) => <option key={j} value={j}>{j}</option>)}
                 </Form.Select>
               </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>Tanggal</Form.Label>
-                <Form.Control
-                  type="date"
-                  value={selected.tanggal ? selected.tanggal.split('T')[0] : ''}
-                  onChange={(e) => setSelected({ ...selected, tanggal: e.target.value })}
-                />
+                <Form.Control type="date" value={selected.tanggal ? selected.tanggal.split('T')[0] : ''} onChange={(e) => setSelected({ ...selected, tanggal: e.target.value })} />
               </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>Nominal (Rp)</Form.Label>
-                <Form.Control
-                  type="number"
-                  min={0}
-                  value={selected.nominal}
-                  onChange={(e) => setSelected({ ...selected, nominal: Number(e.target.value) })}
-                />
+                <Form.Control type="number" min={0} value={selected.nominal} onChange={(e) => setSelected({ ...selected, nominal: Number(e.target.value) })} />
               </Form.Group>
-
               {selected.jenis === 'Cuti Tidak Berbayar' && (
                 <Form.Group className="mb-3">
                   <Form.Label>Jumlah Hari</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min={1}
-                    value={selected.jumlah_hari || ''}
-                    onChange={(e) => setSelected({ ...selected, jumlah_hari: Number(e.target.value) })}
-                  />
+                  <Form.Control type="number" min={1} value={selected.jumlah_hari || ''} onChange={(e) => setSelected({ ...selected, jumlah_hari: Number(e.target.value) })} />
                 </Form.Group>
               )}
-
               <Form.Group className="mb-3">
                 <Form.Label>Keterangan</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={selected.keterangan}
-                  onChange={(e) => setSelected({ ...selected, keterangan: e.target.value })}
-                />
+                <Form.Control as="textarea" rows={3} value={selected.keterangan} onChange={(e) => setSelected({ ...selected, keterangan: e.target.value })} />
               </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>Update Gambar (Opsional)</Form.Label>
                 <Form.Control type="file" accept="image/*" onChange={handleAddImage} />
               </Form.Group>
-
-              {addImagePreview && (
-                <img
-                  src={addImagePreview}
-                  alt="preview"
-                  className="mt-2"
-                  style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }}
-                />
-              )}
+              {addImagePreview && <img src={addImagePreview} alt="preview" className="mt-2" style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }} />}
             </Form>
           )}
         </Modal.Body>
         <Modal.Footer>
           {!editMode ? (
-            <Button variant="secondary" onClick={() => { setSelected(null); setEditMode(false); }}>
-              Tutup
-            </Button>
+            <Button variant="secondary" onClick={() => { setSelected(null); setEditMode(false); }}>Tutup</Button>
           ) : (
             <>
-              <Button
-                variant="secondary"
-                onClick={() => { setEditMode(false); setAddError(''); }}
-                disabled={addLoading}
-              >
-                Batal
-              </Button>
-              <Button
-                style={{ background: '#ff3d7f', border: 'none' }}
-                onClick={saveEdit}
-                disabled={addLoading}
-              >
-                {addLoading ? <Spinner size="sm" animation="border" /> : 'Simpan Perubahan'}
-              </Button>
+              <Button variant="secondary" onClick={() => { setEditMode(false); setAddError(''); }} disabled={addLoading}>Batal</Button>
+              <Button style={{ background: '#ff3d7f', border: 'none' }} onClick={saveEdit} disabled={addLoading}>{addLoading ? <Spinner size="sm" animation="border" /> : 'Simpan Perubahan'}</Button>
             </>
           )}
         </Modal.Footer>
       </Modal>
-
     </div>
   );
 }

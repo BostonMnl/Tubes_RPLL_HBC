@@ -11,6 +11,7 @@ import WageSettings from './components/wage/WageSettings';
 import AdminProfile from './components/MyProfile';
 import ReimbursePage from './components/Reimburse/ReimbursePage';
 import Penalti from './components/Penalti/PenaltiPage';
+import Payroll from './components/Payroll/PayrollPage';
 
 import LoginPage from './components/login/LoginPage';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -68,6 +69,7 @@ export default function App() {
         <Route path="qr" element={<QRGeneratorPage />} />
         <Route path="penalti" element={<Penalti />} />
         <Route path="insentif" element={<InsentifPage />} />
+        <Route path="payroll" element={<Payroll />} />
       </Route>
 
       {/* ===== MANAGER ===== */}
@@ -93,6 +95,7 @@ export default function App() {
         <Route path="penalti" element={<Penalti />} />
         <Route path="insentif" element={<InsentifPage />} />
         <Route path="qrPage" element={<QRGeneratorUserPage />} />
+        <Route path="payroll" element={<Payroll />} />
       </Route>
 
       <Route
@@ -111,6 +114,7 @@ export default function App() {
         <Route path="wage" element={<WageStaff />} />
         <Route path="profile" element={<MyProfile />} />
         <Route path="qrPage" element={<QRGeneratorUserPage />} />
+        <Route path="payroll" element={<Payroll />} />
 
 
 

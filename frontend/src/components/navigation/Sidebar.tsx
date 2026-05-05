@@ -10,6 +10,7 @@ import {
   BsCoin,
   BsQrCode,
   BsQrCodeScan,
+  BsCash,
 } from 'react-icons/bs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -37,10 +38,11 @@ export default function Sidebar() {
     { path: '/tree', label: 'Management Tree', icon: <BsTree /> },
     { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
-    { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },
+    { path: '/wage', label: 'Setting Wage', icon: <BsCash /> },
     { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
     { path: '/insentif', label: 'Insentif', icon: <BsCoin /> },
     { path: '/qr', label: 'Generate QR', icon: <BsQrCode /> },
+    { path: '/payroll', label: 'Payroll', icon: <BsCashStack /> },
     { path: '/qrPage', label: 'QR Pulang', icon: <BsQrCodeScan /> },
   ];
   
@@ -51,9 +53,10 @@ export default function Sidebar() {
     { path: '/tree', label: 'Management Tree', icon: <BsTree /> },
     { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
-    { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },
+    { path: '/wage', label: 'Setting Wage', icon: <BsCash /> },
     { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
     { path: '/insentif', label: 'Insentif', icon: <BsCoin /> },
+    { path: '/payroll', label: 'Payroll', icon: <BsCashStack /> },
     { path: '/qrPage', label: 'QR Pulang', icon: <BsQrCodeScan /> },
   ];
   
@@ -64,6 +67,7 @@ export default function Sidebar() {
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'My wages', icon: <BsCashStack /> },
     { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
+    { path: '/payroll', label: 'Payroll', icon: <BsCashStack /> },
     { path: '/qrPage', label: 'QR Pulang', icon: <BsQrCodeScan /> },
   ];
 
