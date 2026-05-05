@@ -14,6 +14,7 @@ import Penalti from './components/Penalti/PenaltiPage';
 import Payroll from './components/Payroll/PayrollPage';
 
 import LoginPage from './components/login/LoginPage';
+
 import ProtectedRoute from './routes/ProtectedRoute';
 
 import ManagementTree from './components/ManagementTree';
@@ -27,6 +28,9 @@ import MyProfile from './components/MyProfile';
 import QRGeneratorPage from './components/QRGeneratorPage';
 import QRGeneratorUserPage from './components/QRGeneratorUserPage';
 import InsentifPage from './components/insentif/Insentifpage';
+import ResetPasswordPage from './components/login/Resetpasswordpage';
+import ForgotPasswordPage from './components/login/ForgotPasswordPage';
+import PenaltiStaffPage from './components/staff/PenaltiStaff';
 
 function DashboardLayout() {
   return (
@@ -46,6 +50,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* ===== ADMIN ===== */}
       <Route
@@ -85,7 +91,6 @@ export default function App() {
       >
         <Route index element={<ManagerDashboard />} />
         <Route path="user" element={<UserPageManager />} />
-
         <Route path="qr" element={<QRGeneratorUserPage />} />
         <Route path="calendar" element={<CalendarView />} />
         <Route path="reimburse" element={<ReimbursePage />} />
@@ -98,6 +103,7 @@ export default function App() {
         <Route path="payroll" element={<Payroll />} />
       </Route>
 
+      {/* ===== STAFF ===== */}
       <Route
         path="/staff"
         element={
@@ -115,11 +121,8 @@ export default function App() {
         <Route path="profile" element={<MyProfile />} />
         <Route path="qrPage" element={<QRGeneratorUserPage />} />
         <Route path="payroll" element={<Payroll />} />
-
-
-
+        <Route path="penalti" element={<PenaltiStaffPage />} />
       </Route>
     </Routes>
   );
-
 }
