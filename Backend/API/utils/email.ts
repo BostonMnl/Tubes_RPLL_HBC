@@ -40,8 +40,7 @@ export const sendPasswordResetEmail = async ({
   nama,
   resetToken,
 }: PasswordResetEmailPayload): Promise<void> => {
-  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-  const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(resetToken)}`;
+  const resetUrl = `token=${encodeURIComponent(resetToken)}`;
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@example.com';
   const fromName = process.env.SMTP_FROM_NAME || 'HBC App';
 
@@ -49,7 +48,7 @@ export const sendPasswordResetEmail = async ({
     from: `${fromName} <${fromEmail}>`,
     to,
     subject: 'Password reset request',
-    text: `Halo ${nama},\n\nKami menerima permintaan reset password untuk akun Anda. Silakan buka tautan berikut:\n${resetUrl}\n\nJika ini bukan Anda, abaikan email ini.`,
+    text: `Halo ${nama},\n\nKami menerima permintaan reset password untuk akun Anda. Gunakan token berikut untuk reset password:\n${resetUrl}\n\nJika ini bukan Anda, abaikan email ini.`,
     html: `<p>Halo ${nama},</p><p>Kami menerima permintaan reset password untuk akun Anda.</p><p>Silakan buka tautan berikut:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Jika ini bukan Anda, abaikan email ini.</p>`,
   });
 };
