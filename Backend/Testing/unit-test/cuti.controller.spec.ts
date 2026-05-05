@@ -12,9 +12,9 @@ import {
   getRemainingCutiQuota,
   deleteMyCutiRequest,
 } from '../../API/controllers/cuti.controller';
-import { Cuti } from 'models/cuti';
-import { User } from 'models/user';
-import { Absensi } from 'models/absensi';
+import { Cuti } from '../../models/cuti';
+import { User } from '../../models/user';
+import { Absensi } from '../../models/absensi';
 
 jest.mock('models/cuti', () => ({
   Cuti: {

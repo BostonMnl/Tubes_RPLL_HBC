@@ -8,9 +8,9 @@ import {
   getAllGaji,
   updateGajiTetap,
 } from '../../API/controllers/gaji.controller';
-import { Gaji } from 'models/gaji';
-import { User } from 'models/user';
-import { Payroll } from 'models/payroll';
+import { Gaji } from '../../models/gaji';
+import { User } from '../../models/user';
+import { Payroll } from '../../models/payroll';
 
 jest.mock('models/gaji', () => ({
   Gaji: {
@@ -272,16 +272,28 @@ describe('Gaji Controller', () => {
       });
     });
 
-    it('throws when date query invalid', async () => {
-      await expect(
-        getAllGaji(
-          { auth: { id: 'admin-1', role: 'admin' }, query: { date: 'invalid' } } as any,
-          {} as Response
-        )
-      ).rejects.toEqual({
-        code: 400,
-        message: 'Valid date query parameter is required',
+    it('falls back to current period when date query is invalid', async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-05-05T00:00:00Z'));
+
+      (Gaji.findAll as any).mockResolvedValue([
+        { user_id: 'user-1', gaji_id: 'gaji-2' },
+        { user_id: 'user-1', gaji_id: 'gaji-1' },
+      ]);
+
+      const result = await getAllGaji(
+        { auth: { id: 'admin-1', role: 'admin' }, query: { date: 'invalid' } } as any,
+        {} as Response
+      );
+
+      expect(Gaji.findAll).toHaveBeenCalled();
+      expect(result).toEqual({
+        code: 200,
+        message: 'All users active salaries retrieved successfully',
+        data: { gaji: [{ user_id: 'user-1', gaji_id: 'gaji-2' }] },
       });
+
+      jest.useRealTimers();
     });
 
     it('returns latest gaji per user', async () => {
@@ -346,7 +358,8 @@ describe('Gaji Controller', () => {
         )
       ).rejects.toEqual({
         code: 400,
-        message: 'Cannot update salary: Payroll for this period has already been generated and locked',
+        message:
+          'Cannot update salary: This salary record has already been used in a generated payroll. To change the salary, please create a new Gaji record for the upcoming period.',
       });
     });
 

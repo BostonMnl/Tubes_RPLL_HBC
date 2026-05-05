@@ -10,8 +10,8 @@ import {
   updateInsentif,
   deleteInsentif,
 } from '../../API/controllers/insentif.controller';
-import { Insentif } from 'models/insentif';
-import { User } from 'models/user';
+import { Insentif } from '../../models/insentif';
+import { User } from '../../models/user';
 
 jest.mock('models/insentif', () => ({
   Insentif: {
