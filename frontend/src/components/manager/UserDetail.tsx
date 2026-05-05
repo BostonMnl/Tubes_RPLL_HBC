@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Row, Col, Table, Badge, Alert, Spinner } from 'react-bootstrap';
-import dummny from '../../../public/dummy.jpg';
 import { userServices } from '../../services/apiServices';
 import { getUser } from '../../utils/tokenManager';
 
@@ -41,15 +40,19 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
     supervisor: null,
   };
 
-  // 🔥 fetch user
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
+
       try {
         const res = await userServices.getUserByIdManagerial(userId);
-        const userData = res.data ?? res.user ?? res;
-        setForm(userData.user);
-        setAttendance(userData.attendance || []);
+
+        const user = res?.data?.user;
+        const attendance = res?.data?.attendance ?? [];
+         console.log(user)
+
+        setForm(user);
+        setAttendance(attendance);
       } catch (err) {
         console.error('Gagal ambil user detail', err);
       } finally {
@@ -60,11 +63,14 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
     fetchUser();
   }, [userId]);
 
-  const preview = form?.gambar
-    ? `http://localhost:3000${form.gambar}`
-    : dummny;
+  const getImageUrl = (path: string) => {
+    if (!path || path.trim() === '') return '/dummy.jpg';
 
-  // 🔥 cek apakah boleh promote
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return `http://localhost:3000/${cleanPath}`;
+  };
+  const preview = form?.gambar ? getImageUrl(form.gambar) : '/dummy.jpg';
+
   const canPromote = () => {
     if (!form || !currentUser) return false;
 
@@ -157,6 +163,9 @@ export default function UserDetail({ userId, goBack, onPromoteSuccess }: Props) 
             <img
               src={preview}
               alt="profile"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/dummy.jpg';
+              }}
               style={{
                 width: 140,
                 height: 140,

@@ -11,19 +11,15 @@ import {
   Tab,
 } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
-import { pinaltiServices, userServices } from '../../services/apiServices';
+import { insentifServices, userServices } from '../../services/apiServices';
 
-// =========================
-// TYPES
-// =========================
-interface Penalti {
-  penalti_id: string;
+
+interface Insentif {
+  insentif_id: string;
   user_id: string;
-  jenis: string;
   nominal: number;
   keterangan: string;
   tanggal: string;
-  jumlah_hari?: number;
   gambar?: string | null;
   payroll_id?: string | null;
   user?: {
@@ -40,24 +36,21 @@ type UserOption = {
 };
 
 type AddForm = {
-  jenis: string;
   nominal: string;
   tanggal: string;
   keterangan: string;
-  jumlah_hari: string;
 };
 
 const defaultAddForm: AddForm = {
-  jenis: 'Telat Masuk',
   nominal: '',
   tanggal: new Date().toISOString().split('T')[0],
   keterangan: '',
-  jumlah_hari: ''
 };
 
-const JENIS_OPTIONS = ['Cuti Tidak Berbayar', 'Mengrusak', 'Telat Masuk'];
-
-export default function PenaltiPage() {
+// =========================
+// MAIN COMPONENT
+// =========================
+export default function InsentifPage() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const currentUserId = currentUser.id || currentUser.user_id;
   const role = currentUser?.role?.toLowerCase();
@@ -70,14 +63,14 @@ export default function PenaltiPage() {
   const canManageOthers = isAdmin || isSupervisor || isManager;
   const canCreateForUser = isAdmin || isSupervisor || isManager;
 
-  const [data, setData] = useState<Penalti[]>([]);
-  const [historyData, setHistoryData] = useState<Penalti[]>([]);
-  const [myData, setMyData] = useState<Penalti[]>([]);
+  const [data, setData] = useState<Insentif[]>([]);
+  const [historyData, setHistoryData] = useState<Insentif[]>([]);
+  const [myData, setMyData] = useState<Insentif[]>([]);
 
   const [allUsers, setAllUsers] = useState<UserOption[]>([]);
   const [subordinates, setSubordinates] = useState<UserOption[]>([]);
 
-  const [selected, setSelected] = useState<Penalti | null>(null);
+  const [selected, setSelected] = useState<Insentif | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -100,32 +93,31 @@ export default function PenaltiPage() {
   const initFetch = async () => {
     setLoading(true);
     await Promise.all([
-      fetchPenaltiData(),
+      fetchInsentifData(),
       canManageOthers ? fetchSubordinates() : Promise.resolve(),
     ]);
     setLoading(false);
   };
 
-  const fetchPenaltiData = async () => {
+  const fetchInsentifData = async () => {
     try {
       if (isAdmin) {
-        const res = await pinaltiServices.getAllPinalti();
-        const all = res.data?.penalti || res.data || [];
+        const res = await insentifServices.getAllInsentif();
+        const all: Insentif[] = res.data?.insentif || res.data || [];
         setHistoryData(all);
-        setData(all.filter((x: Penalti) => x.user_id !== currentUserId));
-        setMyData(all.filter((x: Penalti) => x.user_id === currentUserId));
+        setData(all.filter((x) => x.user_id !== currentUserId));
+        setMyData(all.filter((x) => x.user_id === currentUserId));
       } else {
-        const res = await pinaltiServices.getMyPinalti();
-        const mixed = res.data?.penalti || res.data || [];
-        setMyData(mixed.filter((x: Penalti) => x.user_id === currentUserId));
-        setData(mixed.filter((x: Penalti) => x.user_id !== currentUserId));
+        const res = await insentifServices.getMyInsentif();
+        const mixed: Insentif[] = res.data?.insentif || res.data || [];
+        setMyData(mixed.filter((x) => x.user_id === currentUserId));
+        setData(mixed.filter((x) => x.user_id !== currentUserId));
       }
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat data penalti');
+      setError(err.message || 'Gagal memuat data insentif');
     }
   };
 
-  // ← UPDATED: filter subordinates berdasarkan role
   const fetchSubordinates = async () => {
     try {
       const res = await userServices.getAllUsers();
@@ -135,33 +127,26 @@ export default function PenaltiPage() {
       let filtered: UserOption[] = [];
 
       if (isAdmin) {
-        // Admin bisa assign ke semua user kecuali diri sendiri
         filtered = usersArray.filter((u) => u.user_id !== currentUserId);
 
       } else if (isManager) {
-        // Manager hanya bisa assign ke bawahannya langsung (yang manager_id = currentUserId)
         filtered = usersArray.filter(
           (u) => u.manager_id === currentUserId && u.user_id !== currentUserId
         );
 
       } else if (isSupervisor) {
-        // Supervisor bisa ke direct reports (manager) + indirect (bawahan dari manager tsb)
+
         const directReports = usersArray.filter(
           (u) => u.manager_id === currentUserId && u.user_id !== currentUserId
         );
-
-        // Kumpulkan semua manager_id dari direct reports yang jabatannya manager
         const managerIds = directReports
           .filter((u) => u.jabatan?.toLowerCase() === 'manager')
           .map((u) => u.user_id);
-
-        // Ambil bawahan dari manager-manager tersebut
         const indirectReports = usersArray.filter(
           (u) =>
             managerIds.includes(u.manager_id || '') &&
             u.user_id !== currentUserId
         );
-
         // Gabung & deduplicate
         const combined = [...directReports, ...indirectReports];
         filtered = combined.filter(
@@ -205,28 +190,27 @@ export default function PenaltiPage() {
       setAddError('Pilih user terlebih dahulu');
       return;
     }
+    if (!addForm.nominal || Number(addForm.nominal) <= 0) {
+      setAddError('Nominal harus diisi dan lebih dari 0');
+      return;
+    }
 
     try {
       setAddLoading(true);
       const formData = new FormData();
       formData.append('user_id', forUserMode ? targetUserId : currentUserId);
-      formData.append('jenis', addForm.jenis);
       formData.append('nominal', addForm.nominal);
       formData.append('tanggal', addForm.tanggal);
       formData.append('keterangan', addForm.keterangan);
-
-      if (addForm.jenis === 'Cuti Tidak Berbayar' && addForm.jumlah_hari) {
-        formData.append('jumlah_hari', addForm.jumlah_hari);
-      }
       if (addImageFile) formData.append('gambar', addImageFile);
 
-      await pinaltiServices.createPinalti(formData);
+      await insentifServices.createInsentif(formData);
 
       resetModal();
-      showAction('success', 'Data penalti berhasil ditambahkan.');
-      fetchPenaltiData();
+      showAction('success', 'Data insentif berhasil ditambahkan.');
+      fetchInsentifData();
     } catch (err: any) {
-      setAddError(err.message || 'Gagal menyimpan data penalti');
+      setAddError(err.message || 'Gagal menyimpan data insentif');
     } finally {
       setAddLoading(false);
     }
@@ -237,36 +221,31 @@ export default function PenaltiPage() {
     try {
       setAddLoading(true);
       const fd = new FormData();
-      fd.append('jenis', selected.jenis);
       fd.append('nominal', String(selected.nominal));
       fd.append('keterangan', selected.keterangan);
       fd.append('tanggal', selected.tanggal);
-
-      if (selected.jenis === 'Cuti Tidak Berbayar' && selected.jumlah_hari) {
-        fd.append('jumlah_hari', String(selected.jumlah_hari));
-      }
       if (addImageFile) fd.append('gambar', addImageFile);
 
-      await pinaltiServices.updatePinalti(selected.penalti_id, fd);
+      await insentifServices.updateInsentif(selected.insentif_id, fd);
 
-      showAction('success', 'Perubahan penalti berhasil disimpan.');
+      showAction('success', 'Perubahan insentif berhasil disimpan.');
       setSelected(null);
       resetModal();
-      fetchPenaltiData();
+      fetchInsentifData();
     } catch (err: any) {
-      setAddError(err.message || 'Gagal update penalti');
+      setAddError(err.message || 'Gagal update insentif');
     } finally {
       setAddLoading(false);
     }
   };
 
   const remove = async (id: string) => {
-    if (confirm('Yakin ingin menghapus data penalti ini?')) {
+    if (confirm('Yakin ingin menghapus data insentif ini?')) {
       try {
-        await pinaltiServices.deletePinalti(id);
+        await insentifServices.deleteInsentif(id);
         showAction('success', 'Data berhasil dihapus');
         setSelected(null);
-        fetchPenaltiData();
+        fetchInsentifData();
       } catch (err: any) {
         showAction('danger', err.message || 'Gagal menghapus data');
       }
@@ -290,29 +269,38 @@ export default function PenaltiPage() {
     return <Badge bg="warning" text="dark">Active</Badge>;
   };
 
-  const getUserLabel = (item: Penalti) => {
+  const getUserLabel = (item: Insentif) => {
     if (item.user?.nama) return `${item.user.nama} (${item.user.jabatan})`;
     const foundUser = allUsers.find((u) => u.user_id === item.user_id);
     if (foundUser) return `${foundUser.nama} (${foundUser.jabatan})`;
     return `User Terhapus (${item.user_id.substring(0, 8)}...)`;
   };
 
+  // Cek apakah item yang sedang dilihat bisa diedit/dihapus oleh user saat ini
+  const canEditOrDelete = (item: Insentif): boolean => {
+    if (isAdmin) return true;
+    return subordinates.some((u) => u.user_id === item.user_id);
+  };
+
+  // ========================
+  // RENDER
+  // ========================
   return (
     <div style={{ background: '#fff0f5', minHeight: '100vh', padding: '20px' }}>
 
-      {/* HEADER */}
+      {/* HEADER CARD */}
       <Card
         className="p-4 mb-4 border-0 shadow-sm"
         style={{
           borderRadius: '16px',
-          background: 'linear-gradient(135deg,#ff6fa5,#ff3d7f)',
+          background: 'linear-gradient(135deg, #ff6fa5, #ff3d7f)',
           color: 'white',
         }}
       >
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div>
-            <h3 className="mb-0">Penalti</h3>
-            <small>List Request Penalti &amp; Potongan</small>
+            <h3 className="mb-0">💰 Insentif</h3>
+            <small>List Insentif & Bonus Karyawan</small>
           </div>
           <div className="d-flex gap-2 flex-wrap">
             {(isAdmin || isSupervisor) && (
@@ -320,12 +308,12 @@ export default function PenaltiPage() {
                 variant="light"
                 onClick={() => { setForUserMode(false); setShowAddModal(true); }}
               >
-                + Penalti Sendiri
+                + Insentif Sendiri
               </Button>
             )}
             {canCreateForUser && (
               <Button
-                variant="warning"
+                style={{ background: '#fff3cd', border: 'none', color: '#856404', fontWeight: 600 }}
                 onClick={() => { setForUserMode(true); setShowAddModal(true); }}
               >
                 + Untuk User
@@ -349,33 +337,30 @@ export default function PenaltiPage() {
       ) : (
         <Tabs defaultActiveKey="mine" className="mb-3">
 
-          {/* TAB: PENALTI SAYA */}
-          <Tab eventKey="mine" title="Penalti Saya">
+          {/* TAB: INSENTIF SAYA */}
+          <Tab eventKey="mine" title="Insentif Saya">
             <Card className="p-4 border-0 shadow-sm">
               {myData.length === 0 ? (
-                <p className="text-muted text-center py-4">Belum ada penalti untuk Anda.</p>
+                <p className="text-muted text-center py-4">Belum ada insentif untuk Anda.</p>
               ) : (
                 <Table hover responsive>
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>Jenis</th>
                       <th>Nominal</th>
                       <th>Tanggal</th>
+                      <th>Keterangan</th>
                       <th>Status</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {myData.map((item, idx) => (
-                      <tr
-                        key={item.penalti_id}
-                        style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}
-                      >
+                      <tr key={item.insentif_id} style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}>
                         <td>{idx + 1}</td>
-                        <td className="fw-semibold">{item.jenis}</td>
-                        <td>{formatRupiah(item.nominal)}</td>
+                        <td className="fw-semibold">{formatRupiah(item.nominal)}</td>
                         <td>{item.tanggal ? item.tanggal.split('T')[0] : '-'}</td>
+                        <td>{display(item.keterangan)}</td>
                         <td>{renderStatus(item.payroll_id)}</td>
                         <td>
                           <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
@@ -390,41 +375,40 @@ export default function PenaltiPage() {
             </Card>
           </Tab>
 
-          {/* TAB: PENALTI BAWAHAN */}
+          {/* TAB: INSENTIF BAWAHAN */}
           {canManageOthers && (
-            <Tab eventKey="all" title="Penalti Bawahan">
+            <Tab eventKey="all" title="Insentif Bawahan">
               <Card className="p-4 border-0 shadow-sm">
                 <p className="text-muted small mb-3">
                   {isAdmin
-                    ? 'Admin dapat melihat dan mengelola semua penalti.'
-                    : 'Anda hanya dapat melihat dan mengelola penalti dari bawahan Anda.'}
+                    ? 'Admin dapat melihat dan mengelola semua insentif.'
+                    : isManager
+                    ? 'Anda hanya dapat melihat dan mengelola insentif bawahan langsung Anda.'
+                    : 'Anda dapat melihat dan mengelola insentif seluruh bawahan Anda.'}
                 </p>
                 {data.length === 0 ? (
-                  <p className="text-muted text-center py-4">Tidak ada data penalti bawahan.</p>
+                  <p className="text-muted text-center py-4">Tidak ada data insentif bawahan.</p>
                 ) : (
                   <Table hover responsive>
                     <thead>
                       <tr>
                         <th>No.</th>
                         <th>User</th>
-                        <th>Jenis</th>
                         <th>Nominal</th>
                         <th>Tanggal</th>
+                        <th>Keterangan</th>
                         <th>Status</th>
                         <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.map((item, idx) => (
-                        <tr
-                          key={item.penalti_id}
-                          style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}
-                        >
+                        <tr key={item.insentif_id} style={{ opacity: isLocked(item.payroll_id) ? 0.7 : 1 }}>
                           <td>{idx + 1}</td>
                           <td>{getUserLabel(item)}</td>
-                          <td>{item.jenis}</td>
-                          <td>{formatRupiah(item.nominal)}</td>
+                          <td className="fw-semibold">{formatRupiah(item.nominal)}</td>
                           <td>{item.tanggal ? item.tanggal.split('T')[0] : '-'}</td>
+                          <td>{display(item.keterangan)}</td>
                           <td>{renderStatus(item.payroll_id)}</td>
                           <td>
                             <Button size="sm" variant="outline-primary" onClick={() => setSelected(item)}>
@@ -444,9 +428,7 @@ export default function PenaltiPage() {
           {isAdmin && (
             <Tab eventKey="history" title="History Semua">
               <Card className="p-4 border-0 shadow-sm">
-                <p className="text-muted small mb-3">
-                  Riwayat seluruh penalti (termasuk yang terkunci).
-                </p>
+                <p className="text-muted small mb-3">Riwayat seluruh insentif (termasuk yang terkunci).</p>
                 {historyData.length === 0 ? (
                   <p className="text-muted text-center py-4">Belum ada history.</p>
                 ) : (
@@ -455,7 +437,6 @@ export default function PenaltiPage() {
                       <tr>
                         <th>#</th>
                         <th>User</th>
-                        <th>Jenis</th>
                         <th>Nominal</th>
                         <th>Tanggal</th>
                         <th>Keterangan</th>
@@ -465,11 +446,10 @@ export default function PenaltiPage() {
                     </thead>
                     <tbody>
                       {historyData.map((item, idx) => (
-                        <tr key={item.penalti_id}>
+                        <tr key={item.insentif_id}>
                           <td>{idx + 1}</td>
                           <td>{getUserLabel(item)}</td>
-                          <td>{item.jenis}</td>
-                          <td>{formatRupiah(item.nominal)}</td>
+                          <td className="fw-semibold">{formatRupiah(item.nominal)}</td>
                           <td>{item.tanggal ? item.tanggal.split('T')[0] : '-'}</td>
                           <td>{display(item.keterangan)}</td>
                           <td>{renderStatus(item.payroll_id)}</td>
@@ -490,11 +470,13 @@ export default function PenaltiPage() {
         </Tabs>
       )}
 
-      {/* MODAL CREATE */}
+      {/* ===========================
+          MODAL CREATE INSENTIF
+      =========================== */}
       <Modal show={showAddModal} onHide={resetModal} centered>
         <Modal.Header closeButton style={{ background: '#ff3d7f', color: 'white' }}>
           <Modal.Title>
-            {forUserMode ? '+ Penalti Untuk User' : '+ Penalti Sendiri'}
+            {forUserMode ? '+ Insentif Untuk User' : '+ Insentif Sendiri'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -503,10 +485,7 @@ export default function PenaltiPage() {
           {forUserMode && (
             <Form.Group className="mb-3">
               <Form.Label>Pilih User</Form.Label>
-              <Form.Select
-                value={targetUserId}
-                onChange={(e) => setTargetUserId(e.target.value)}
-              >
+              <Form.Select value={targetUserId} onChange={(e) => setTargetUserId(e.target.value)}>
                 <option value="">-- Pilih user --</option>
                 {subordinates.map((u) => (
                   <option key={u.user_id} value={u.user_id}>
@@ -515,19 +494,10 @@ export default function PenaltiPage() {
                 ))}
               </Form.Select>
               {subordinates.length === 0 && (
-                <Form.Text className="text-danger">
-                  Tidak ada bawahan yang tersedia.
-                </Form.Text>
+                <Form.Text className="text-danger">Tidak ada bawahan yang tersedia.</Form.Text>
               )}
             </Form.Group>
           )}
-
-          <Form.Group className="mb-3">
-            <Form.Label>Jenis Penalti</Form.Label>
-            <Form.Select name="jenis" value={addForm.jenis} onChange={handleAddChange}>
-              {JENIS_OPTIONS.map((j) => <option key={j} value={j}>{j}</option>)}
-            </Form.Select>
-          </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>Nominal (IDR)</Form.Label>
@@ -535,7 +505,7 @@ export default function PenaltiPage() {
               name="nominal"
               type="number"
               min={0}
-              placeholder="Contoh: 150000"
+              placeholder="Contoh: 500000"
               value={addForm.nominal}
               onChange={handleAddChange}
             />
@@ -543,26 +513,8 @@ export default function PenaltiPage() {
 
           <Form.Group className="mb-3">
             <Form.Label>Tanggal</Form.Label>
-            <Form.Control
-              name="tanggal"
-              type="date"
-              value={addForm.tanggal}
-              onChange={handleAddChange}
-            />
+            <Form.Control name="tanggal" type="date" value={addForm.tanggal} onChange={handleAddChange} />
           </Form.Group>
-
-          {addForm.jenis === 'Cuti Tidak Berbayar' && (
-            <Form.Group className="mb-3">
-              <Form.Label>Jumlah Hari</Form.Label>
-              <Form.Control
-                type="number"
-                name="jumlah_hari"
-                min={1}
-                value={addForm.jumlah_hari}
-                onChange={handleAddChange}
-              />
-            </Form.Group>
-          )}
 
           <Form.Group className="mb-3">
             <Form.Label>Keterangan</Form.Label>
@@ -570,48 +522,52 @@ export default function PenaltiPage() {
               as="textarea"
               rows={3}
               name="keterangan"
-              placeholder="Deskripsi..."
+              placeholder="Contoh: Performance bonus for May..."
               value={addForm.keterangan}
               onChange={handleAddChange}
             />
           </Form.Group>
 
-          <Form.Group>
-            <Form.Label>Bukti (foto)</Form.Label>
+          <Form.Group className="mb-3">
+            <Form.Label>Bukti / Dokumen (foto)</Form.Label>
             <Form.Control type="file" accept="image/*" onChange={handleAddImage} />
+            <Form.Text className="text-muted">Format: JPG, PNG, WEBP. Maks 5MB.</Form.Text>
           </Form.Group>
 
           {addImagePreview && (
-            <img
-              src={addImagePreview}
-              alt="preview"
-              className="mt-3"
-              style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }}
-            />
+            <div className="mt-2 position-relative">
+              <img
+                src={addImagePreview}
+                alt="preview"
+                style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200, border: '2px solid #ff6fa5' }}
+              />
+              <Button
+                size="sm" variant="danger"
+                style={{ position: 'absolute', top: 8, right: 8, borderRadius: '50%', padding: '0 6px' }}
+                onClick={() => { setAddImageFile(null); setAddImagePreview(''); }}
+              >✕</Button>
+            </div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={resetModal} disabled={addLoading}>
-            Batal
-          </Button>
-          <Button
-            style={{ background: '#ff3d7f', border: 'none' }}
-            onClick={handleSubmit}
-            disabled={addLoading}
-          >
+          <Button variant="secondary" onClick={resetModal} disabled={addLoading}>Batal</Button>
+          <Button style={{ background: '#ff3d7f', border: 'none' }} onClick={handleSubmit} disabled={addLoading}>
             {addLoading ? <Spinner size="sm" animation="border" /> : 'Simpan'}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* MODAL DETAIL / EDIT */}
-      <Modal show={!!selected} onHide={() => { setSelected(null); setEditMode(false); }} centered>
+      {/* ===========================
+          MODAL DETAIL / EDIT
+      =========================== */}
+      <Modal show={!!selected} onHide={() => { setSelected(null); setEditMode(false); setAddError(''); }} centered>
         <Modal.Header closeButton style={{ background: '#ff3d7f', color: 'white' }}>
-          <Modal.Title>{editMode ? '✏️ Edit Penalti' : 'Detail Penalti'}</Modal.Title>
+          <Modal.Title>{editMode ? '✏️ Edit Insentif' : '💰 Detail Insentif'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {addError && <Alert variant="danger">{addError}</Alert>}
 
+          {/* VIEW MODE */}
           {selected && !editMode && (
             <div>
               <table className="table table-borderless table-sm">
@@ -621,27 +577,17 @@ export default function PenaltiPage() {
                     <td>{getUserLabel(selected)}</td>
                   </tr>
                   <tr>
-                    <th>Jenis</th>
-                    <td>{selected.jenis}</td>
-                  </tr>
-                  <tr>
                     <th>Nominal</th>
-                    <td>{formatRupiah(selected.nominal)}</td>
+                    <td className="fw-bold" style={{ color: '#ff3d7f' }}>{formatRupiah(selected.nominal)}</td>
                   </tr>
                   <tr>
                     <th>Tanggal</th>
                     <td>
                       {selected.tanggal
-                        ? new Date(selected.tanggal).toLocaleDateString('id-ID')
+                        ? new Date(selected.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
                         : '-'}
                     </td>
                   </tr>
-                  {selected.jenis === 'Cuti Tidak Berbayar' && selected.jumlah_hari && (
-                    <tr>
-                      <th>Jumlah Hari</th>
-                      <td>{selected.jumlah_hari} hari</td>
-                    </tr>
-                  )}
                   <tr>
                     <th>Keterangan</th>
                     <td>{display(selected.keterangan)}</td>
@@ -654,31 +600,26 @@ export default function PenaltiPage() {
               </table>
 
               {selected.gambar && (
-                <img
-                  src={`http://localhost:3000${selected.gambar.startsWith('/') ? '' : '/'}${selected.gambar}`}
-                  alt="bukti"
-                  style={{ width: '100%', borderRadius: 12, border: '1px solid #ddd' }}
-                />
+                <div className="mt-2">
+                  <p className="text-muted small mb-1">Bukti:</p>
+                  <img
+                    src={`http://localhost:3000${selected.gambar.startsWith('/') ? '' : '/'}${selected.gambar}`}
+                    alt="bukti"
+                    style={{ width: '100%', borderRadius: 12, border: '2px solid #ff6fa5', objectFit: 'cover', maxHeight: 260 }}
+                  />
+                </div>
               )}
 
-              {!isLocked(selected.payroll_id) && (
+              {/* Edit & Delete: tampil hanya jika tidak locked DAN user ini ada di daftar bawahan */}
+              {!isLocked(selected.payroll_id) && canEditOrDelete(selected) && (
                 <div className="d-flex gap-2 mt-3">
                   <Button
-                    variant="warning"
-                    className="flex-fill"
-                    onClick={() => {
-                      setAddImagePreview('');
-                      setAddImageFile(null);
-                      setEditMode(true);
-                    }}
+                    variant="warning" className="flex-fill"
+                    onClick={() => { setAddImagePreview(''); setAddImageFile(null); setEditMode(true); }}
                   >
                     ✏️ Edit
                   </Button>
-                  <Button
-                    variant="danger"
-                    className="flex-fill"
-                    onClick={() => remove(selected.penalti_id)}
-                  >
+                  <Button variant="danger" className="flex-fill" onClick={() => remove(selected.insentif_id)}>
                     🗑 Hapus
                   </Button>
                 </div>
@@ -686,16 +627,15 @@ export default function PenaltiPage() {
             </div>
           )}
 
+          {/* EDIT MODE */}
           {selected && editMode && (
             <Form>
               <Form.Group className="mb-3">
-                <Form.Label>Jenis Penalti</Form.Label>
-                <Form.Select
-                  value={selected.jenis}
-                  onChange={(e) => setSelected({ ...selected, jenis: e.target.value })}
-                >
-                  {JENIS_OPTIONS.map((j) => <option key={j} value={j}>{j}</option>)}
-                </Form.Select>
+                <Form.Label>Nominal (Rp)</Form.Label>
+                <Form.Control
+                  type="number" min={0} value={selected.nominal}
+                  onChange={(e) => setSelected({ ...selected, nominal: Number(e.target.value) })}
+                />
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -708,33 +648,9 @@ export default function PenaltiPage() {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Nominal (Rp)</Form.Label>
-                <Form.Control
-                  type="number"
-                  min={0}
-                  value={selected.nominal}
-                  onChange={(e) => setSelected({ ...selected, nominal: Number(e.target.value) })}
-                />
-              </Form.Group>
-
-              {selected.jenis === 'Cuti Tidak Berbayar' && (
-                <Form.Group className="mb-3">
-                  <Form.Label>Jumlah Hari</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min={1}
-                    value={selected.jumlah_hari || ''}
-                    onChange={(e) => setSelected({ ...selected, jumlah_hari: Number(e.target.value) })}
-                  />
-                </Form.Group>
-              )}
-
-              <Form.Group className="mb-3">
                 <Form.Label>Keterangan</Form.Label>
                 <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={selected.keterangan}
+                  as="textarea" rows={3} value={selected.keterangan}
                   onChange={(e) => setSelected({ ...selected, keterangan: e.target.value })}
                 />
               </Form.Group>
@@ -745,35 +661,45 @@ export default function PenaltiPage() {
               </Form.Group>
 
               {addImagePreview && (
-                <img
-                  src={addImagePreview}
-                  alt="preview"
-                  className="mt-2"
-                  style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200 }}
-                />
+                <div className="mt-2 position-relative">
+                  <img
+                    src={addImagePreview} alt="preview baru"
+                    style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 200, border: '2px solid #ff6fa5' }}
+                  />
+                  <Button
+                    size="sm" variant="danger"
+                    style={{ position: 'absolute', top: 8, right: 8, borderRadius: '50%', padding: '0 6px' }}
+                    onClick={() => { setAddImageFile(null); setAddImagePreview(''); }}
+                  >✕</Button>
+                </div>
+              )}
+
+              {!addImagePreview && selected.gambar && (
+                <div className="mt-2">
+                  <p className="text-muted small mb-1">Gambar saat ini:</p>
+                  <img
+                    src={`http://localhost:3000${selected.gambar.startsWith('/') ? '' : '/'}${selected.gambar}`}
+                    alt="gambar lama"
+                    style={{ width: '100%', borderRadius: 12, border: '1px solid #ddd', objectFit: 'cover', maxHeight: 200 }}
+                  />
+                </div>
               )}
             </Form>
           )}
         </Modal.Body>
         <Modal.Footer>
           {!editMode ? (
-            <Button variant="secondary" onClick={() => { setSelected(null); setEditMode(false); }}>
-              Tutup
-            </Button>
+            <Button variant="secondary" onClick={() => { setSelected(null); setAddError(''); }}>Tutup</Button>
           ) : (
             <>
               <Button
                 variant="secondary"
-                onClick={() => { setEditMode(false); setAddError(''); }}
+                onClick={() => { setEditMode(false); setAddError(''); setAddImagePreview(''); setAddImageFile(null); }}
                 disabled={addLoading}
               >
                 Batal
               </Button>
-              <Button
-                style={{ background: '#ff3d7f', border: 'none' }}
-                onClick={saveEdit}
-                disabled={addLoading}
-              >
+              <Button style={{ background: '#ff3d7f', border: 'none' }} onClick={saveEdit} disabled={addLoading}>
                 {addLoading ? <Spinner size="sm" animation="border" /> : 'Simpan Perubahan'}
               </Button>
             </>

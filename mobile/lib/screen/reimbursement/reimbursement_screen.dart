@@ -230,9 +230,10 @@ class _ReimbursementScreenState extends State<ReimbursementScreen> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    final baseUrl = "http://192.168.1.6:3000";
+    final baseUrl = ApiServices.baseUrl;
 
     return Scaffold(
       appBar: AppBar(

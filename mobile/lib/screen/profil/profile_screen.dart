@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
- static const String _baseUrl = "http://192.168.1.6:3000";
+ static const String _baseUrl = ApiServices.baseUrl;
 
   @override
   Widget build(BuildContext context) {

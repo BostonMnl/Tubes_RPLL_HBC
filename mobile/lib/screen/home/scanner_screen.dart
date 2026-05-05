@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:mobile/data/api/api_services.dart';
 import 'package:mobile/data/auth/auth_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
@@ -19,7 +20,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   String? token;
 
-  final String baseUrl = "http://192.168.1.7:3000";
+  final String baseUrl = ApiServices.apiUrl;
 
   @override
   void initState() {
@@ -41,16 +42,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
     super.dispose();
   }
 
-  // =======================
-  // 🔥 API MASUK
-  // =======================
+
   Future<String> scanQR(String qrToken) async {
     if (token == null) {
       throw Exception("Token belum tersedia");
     }
 
     final response = await http.post(
-      Uri.parse("$baseUrl/api/attendance/scan"),
+      Uri.parse("$baseUrl/attendance/scan"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -70,16 +69,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
     return data['data']['attendance']['jam_masuk'];
   }
 
-  // =======================
-  // 🔥 API KELUAR
-  // =======================
   Future<String> checkoutScanQR(String qrToken) async {
     if (token == null) {
       throw Exception("Token belum tersedia");
     }
 
     final response = await http.post(
-      Uri.parse("$baseUrl/api/attendance/checkout/scan"),
+      Uri.parse("$baseUrl/attendance/checkout/scan"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -127,7 +123,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       if (!mounted) return;
 
-      // ✅ SUCCESS
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -158,7 +153,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       if (!mounted) return;
 
-      // ❌ ERROR
       showDialog(
         context: context,
         builder: (_) => AlertDialog(

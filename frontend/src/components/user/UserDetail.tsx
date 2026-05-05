@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Row, Col, Table, Form, Badge, Alert, Spinner, Modal } from 'react-bootstrap';
 import type { User } from '../../model/User';
 import { userServices } from '../../services/apiServices';
-import dummny from '../../../public/dummy.jpg';
 
 type Props = {
   userId: string;
@@ -27,14 +26,13 @@ const defaultUser: User = {
 export default function UserDetail({ userId, goBack }: Props) {
   const [isEdit, setIsEdit] = useState(false);
   const [form, setForm] = useState<User>(defaultUser);
-  const [preview, setPreview] = useState<string>('');
+  const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // ✅ State untuk list manager
   const [managers, setManagers] = useState<User[]>([]);
 
   const [showResetModal, setShowResetModal] = useState(false);
@@ -55,9 +53,9 @@ export default function UserDetail({ userId, goBack }: Props) {
       setForm(userData.user);
       setAttendance(userData.attendance || []);
       setPreview(
-        userData.gambar
-          ? `http://localhost:3000${userData.gambar}`
-          : dummny
+        userData.user.gambar
+          ? `http://localhost:3000${userData.user.gambar}`
+          : null
       );
     } catch (err: any) {
       setError(err.message || 'Gagal memuat data user');
@@ -66,8 +64,7 @@ export default function UserDetail({ userId, goBack }: Props) {
     }
   }, [userId]);
 
-  // Fetch semua user lalu filter yang jabatan-nya manager/supervisor
-  // Sama seperti pola di UserPage: response.data?.user
+
   const fetchManagers = useCallback(async () => {
     try {
       const response = await userServices.getAllUsers();
@@ -118,7 +115,6 @@ export default function UserDetail({ userId, goBack }: Props) {
       formData.append('role', form.role ?? '');
       formData.append('departemen', form.departemen ?? '');
 
-      // ✅ Kirim manager_id jika ada
       if (form.manager_id) formData.append('manager_id', form.manager_id);
 
       if (imageFile) formData.append('gambar', imageFile, imageFile.name);
@@ -212,10 +208,15 @@ export default function UserDetail({ userId, goBack }: Props) {
       <Card className="p-4 shadow-sm mb-4" style={{ borderRadius: 16, border: 'none' }}>
         <Row>
 
-          {/* ===== LEFT ===== */}
           <Col md={4} className="text-center border-end">
             <img
-              src={preview || dummny}
+              src={
+                preview?.trim()
+                  ? preview
+                  : form.gambar
+                    ? `http://localhost:3000${form.gambar}`
+                    : '/dummy.jpg'
+              }
               alt="profile"
               style={{
                 width: 140,

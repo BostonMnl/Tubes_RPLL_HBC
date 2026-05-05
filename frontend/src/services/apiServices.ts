@@ -63,14 +63,13 @@ export const userServices = {
     return handleResponse(response);
   },
 
-  updateMe: async (userData: Partial<User>) => {
-    const response = await fetchWithToken(`${API_BASE_URL}/me`, {
-      method: 'PATCH',
-      body: JSON.stringify(userData),
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return handleResponse(response);
-  },
+updateMe: async (formData: FormData) => {
+  const response = await fetchWithToken(`${API_BASE_URL}/me`, {
+    method: 'PATCH',
+    body: formData,
+  });
+  return handleResponse(response);
+},
 
   // Update user
   updateUser: async (
@@ -166,6 +165,25 @@ export const attendanceServices = {
       throw error;
     }
   },
+  getAttendanceManage: async (params?: {
+    from?: string;   // YYYY-MM-DD
+    to?: string;     // YYYY-MM-DD
+    status?: string; // 'Hadir' | 'Telat' | 'Alfa'
+    user_id?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.from)    query.set('from',    params.from);
+    if (params?.to)      query.set('to',      params.to);
+    if (params?.status)  query.set('status',  params.status);
+    if (params?.user_id) query.set('user_id', params.user_id);
+ 
+    const response = await fetchWithToken(
+      `${API_BASE_URL}/attendance/manage?${query.toString()}`
+    );
+    return handleResponse(response);
+  },
+
+  
 };
 
 // // ============ LEAVE SERVICES ============
@@ -276,7 +294,7 @@ export const wageServices = {
   // Get all wages
   getMyGaji: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/gaji/me`);
+      const response = await fetchWithToken(`${API_BASE_URL}/gaji/me`);
       if (!response.ok) throw new Error('Failed to fetch wages');
       return await response.json();
     } catch (error) {
@@ -583,7 +601,7 @@ export const getAuthHeader = (): HeadersInit => {
 
 
 export const qrGeneratorService = {
-  recordStart: async (time: string) => {
+  recordStart: async () => {
     try {
       const response = await fetchWithToken(
         `${API_BASE_URL}/attendance/record-start`,
@@ -592,7 +610,7 @@ export const qrGeneratorService = {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ time }),
+          body: JSON.stringify({}),
         }
       );
 
@@ -626,5 +644,103 @@ export const qrGeneratorService = {
       console.error('Error fetching QR:', error);
       throw error;
     }
+  },
+};
+
+export const insentifServices = {
+  getAllInsentif: async () => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/insentif`
+      );
+
+      return await handleResponse(response);
+    } catch (err) {
+      console.error('Error getAllInsentif:', err);
+      throw err;
+    }
+  },
+
+  getMyInsentif: async () => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/insentif/me`
+      );
+
+      return await handleResponse(response);
+    } catch (err) {
+      console.error('Error getMyInsentif:', err);
+      throw err;
+    }
+  },
+
+  getInsentifByUserId: async (userId: string) => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/insentif/user/${userId}`
+      );
+
+      return await handleResponse(response);
+    } catch (err) {
+      console.error('Error getInsentifByUserId:', err);
+      throw err;
+    }
+  },
+
+  createInsentif: async (formData: FormData) => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/insentif`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      return await handleResponse(response);
+    } catch (err) {
+      console.error('Error createInsentif:', err);
+      throw err;
+    }
+  },
+
+  updateInsentif: async (id: string, formData: FormData) => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/insentif/${id}`,
+        {
+          method: 'PUT',
+          body: formData,
+        }
+      );
+
+      return await handleResponse(response);
+    } catch (err) {
+      console.error('Error updateInsentif:', err);
+      throw err;
+    }
+  },
+
+  deleteInsentif: async (id: string) => {
+    try {
+      const response = await fetchWithToken(
+        `${API_BASE_URL}/insentif/${id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      return await handleResponse(response);
+    } catch (err) {
+      console.error('Error deleteInsentif:', err);
+      throw err;
+    }
+  },
+};
+
+export const logServices = {
+  getMyLogs: async () => {
+    const response = await fetchWithToken(`${API_BASE_URL}/log_activity/me`);
+    return handleResponse(response);
   },
 };

@@ -7,6 +7,9 @@ import {
   BsCashStack,
   BsTree,
   BsPersonBadge,
+  BsCoin,
+  BsQrCode,
+  BsQrCodeScan,
 } from 'react-icons/bs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -36,8 +39,11 @@ export default function Sidebar() {
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },
     { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
+    { path: '/insentif', label: 'Insentif', icon: <BsCoin /> },
+    { path: '/qr', label: 'Generate QR', icon: <BsQrCode /> },
+    { path: '/qrPage', label: 'QR Pulang', icon: <BsQrCodeScan /> },
   ];
-
+  
   // Menu manager / supervisor
   const managerMenu = [
     { path: '', label: 'Dashboard', icon: <BsSpeedometer2 /> },
@@ -47,8 +53,10 @@ export default function Sidebar() {
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },
     { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
+    { path: '/insentif', label: 'Insentif', icon: <BsCoin /> },
+    { path: '/qrPage', label: 'QR Pulang', icon: <BsQrCodeScan /> },
   ];
-
+  
   // Menu staff
   const staffMenu = [
     { path: '/', label: 'Management Tree', icon: <BsTree /> },
@@ -56,6 +64,7 @@ export default function Sidebar() {
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'My wages', icon: <BsCashStack /> },
     { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
+    { path: '/qrPage', label: 'QR Pulang', icon: <BsQrCodeScan /> },
   ];
 
   const menu = isAdmin
