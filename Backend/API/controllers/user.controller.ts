@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/user';
 import { Absensi } from '../../models/absensi';
+import { Reimburse } from '../../models/reimburse';
+import { Cuti } from '../../models/cuti';
+import { Gaji } from '../../models/gaji';
+import { Op } from 'sequelize';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { ApiResponse } from '../middlewares/response.middleware';
@@ -115,7 +119,15 @@ export const resetPasswordWithToken = async (
 export const getMyProfile = async (
 	req: AuthenticatedRequest,
 	_res: Response
-): Promise<ApiResponse<{ user: User; attendance: { date: Date; status: string }[] }>> => {
+): Promise<
+	ApiResponse<{
+		user: User;
+		attendance: { date: Date; status: string }[];
+		total_reimburse: number;
+		total_cuti: number;
+		gaji: number | null;
+	}>
+> => {
 	if (!req.auth?.id) {
 		throw { code: 401, message: 'Unauthorized' };
 	}
@@ -128,15 +140,38 @@ export const getMyProfile = async (
 		throw { code: 404, message: 'User not found' };
 	}
 
-	const attendance = await Absensi.findAll({
-		where: { user_id: req.auth.id },
-		attributes: ['date', 'status'],
-		order: [
-			['date', 'DESC'],
-			['createdAt', 'DESC'],
-		],
-		limit: 30,
-	});
+	const todayStart = new Date();
+	todayStart.setHours(0, 0, 0, 0);
+	const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+	const monthEnd = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 1);
+	const [attendance, total_reimburse, total_cuti, gaji] = await Promise.all([
+		Absensi.findAll({
+			where: { user_id: req.auth.id },
+			attributes: ['date', 'status'],
+			order: [
+				['date', 'DESC'],
+				['createdAt', 'DESC'],
+			],
+			limit: 30,
+		}),
+		Reimburse.count({
+			where: {
+				user_id: req.auth.id,
+				createdAt: { [Op.gte]: monthStart, [Op.lt]: monthEnd },
+			},
+		}),
+		Cuti.count({
+			where: {
+				user_id: req.auth.id,
+				createdAt: { [Op.gte]: monthStart, [Op.lt]: monthEnd },
+			},
+		}),
+		Gaji.findOne({
+			where: { user_id: req.auth.id, tanggal_berlaku: { [Op.lt]: todayStart } },
+			order: [['tanggal_berlaku', 'DESC']],
+			attributes: ['nominal'],
+		}),
+	]);
 
 	return {
 		code: 200,
@@ -144,6 +179,9 @@ export const getMyProfile = async (
 		data: {
 			user,
 			attendance,
+			total_reimburse,
+			total_cuti,
+			gaji: gaji?.nominal ?? null,
 		},
 	};
 };
