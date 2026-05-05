@@ -21,37 +21,67 @@ const HADIR_WINDOW_MINUTES = 10;
 const TELAT_WINDOW_MINUTES = 60;
 
 const padTwo = (value: number): string => String(value).padStart(2, '0');
-const isValidTime = (value: string): boolean => /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value);
+const WIB_TIME_ZONE = 'Asia/Jakarta';
 
-const getLocalDateTime = (): { date: string; time: string } => {
-  const now = new Date();
-  const date = `${now.getFullYear()}-${padTwo(now.getMonth() + 1)}-${padTwo(now.getDate())}`;
-  const time = `${padTwo(now.getHours())}:${padTwo(now.getMinutes())}:${padTwo(now.getSeconds())}`;
-  return { date, time };
+const getWibParts = (): {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
+  minute: string;
+  second: string;
+} => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: WIB_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const map: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== 'literal') {
+      map[part.type] = part.value;
+    }
+  }
+
+  return {
+    year: map.year,
+    month: map.month,
+    day: map.day,
+    hour: map.hour,
+    minute: map.minute,
+    second: map.second,
+  };
+};
+
+const buildWibDateTime = (date: string, time: string): Date => {
+  return new Date(`${date}T${time}+07:00`);
+};
+
+const getWibDateTime = (): { date: string; time: string; now: Date } => {
+  const parts = getWibParts();
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  const time = `${parts.hour}:${parts.minute}:${parts.second}`;
+  return { date, time, now: buildWibDateTime(date, time) };
 };
 
 const getTodayRange = (): { start: Date; end: Date } => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const { date } = getWibDateTime();
+  const start = new Date(`${date}T00:00:00+07:00`);
+  const end = new Date(`${date}T23:59:59.999+07:00`);
   return { start, end };
-};
-
-const buildDateTimeFromToday = (time: string): Date => {
-  const now = new Date();
-  const [hour, minute, second = '0'] = time.split(':');
-  return new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    Number(hour),
-    Number(minute),
-    Number(second)
-  );
 };
 
 const getTodayStartRecord = async (): Promise<AbsensiStart | null> => {
   const { start, end } = getTodayRange();
+
+console.log("di getTodayStartRecord", start , end);
+
   return AbsensiStart.findOne({
     where: {
       absensi_dimulai: {
@@ -129,23 +159,18 @@ export const recordStart = async (
     throw { code: 401, message: 'Unauthorized' };
   }
 
-  const { time } = req.body as { time?: string };
+  const { now } = getWibDateTime();
 
-  if (!time || typeof time !== 'string' || !time.trim()) {
-    throw { code: 400, message: 'Missing time' };
-  }
-
-  if (!isValidTime(time)) {
-    throw { code: 400, message: 'time must be HH:MM or HH:MM:SS' };
-  }
+  console.log("di recordStart", now);
 
   const existing = await getTodayStartRecord();
 
   if (existing) {
     const diffMs = Date.now() - existing.absensi_dimulai.getTime();
+  
     const diffMinutes = diffMs / (1000 * 60);
 
-    if (diffMinutes > HADIR_WINDOW_MINUTES) {
+    if (diffMinutes > TELAT_WINDOW_MINUTES) {
       throw { code: 400, message: 'Record start expired' };
     }
 
@@ -160,7 +185,7 @@ export const recordStart = async (
   }
 
   const record = await AbsensiStart.create({
-    absensi_dimulai: buildDateTimeFromToday(time),
+    absensi_dimulai: now,
     user_id: req.auth.id,
   });
 
@@ -214,7 +239,8 @@ export const scanAttendance = async (
 
     cache.set(usedKey, '1', QR_TTL);
 
-    const { date, time } = getLocalDateTime();
+    const { date, time } = getWibDateTime();
+
     const existingForToday = await Absensi.findOne({
       where: {
         user_id: req.auth.id,
@@ -227,6 +253,9 @@ export const scanAttendance = async (
     }
 
     const status = window.diffMinutes <= HADIR_WINDOW_MINUTES ? 'Hadir' : 'Telat';
+
+    console.log(date, time, "second before save")
+
     const attendance = await Absensi.create({
       date,
       jam_masuk: time,
@@ -300,7 +329,7 @@ export const checkoutAttendance = async (
     throw { code: 400, message: 'Invalid checkout QR' };
   }
 
-  const { time } = getLocalDateTime();
+  const { time } = getWibDateTime();
   attendance.jam_keluar = time;
   await attendance.save();
 

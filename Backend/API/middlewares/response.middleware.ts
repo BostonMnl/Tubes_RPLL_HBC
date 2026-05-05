@@ -62,9 +62,11 @@ export const apiResponse = <T>(handler: WrappedHandler<T>): RequestHandler => {
       });
 
       const userId = (req as Request & { auth?: { id?: string } }).auth?.id ?? null;
-      void logActivity({ userId, code, message }).catch((error) => {
-        console.warn('Failed to write activity log:', error);
-      });
+      if (userId) {
+        void logActivity({ userId, code, message }).catch((error) => {
+          console.warn('Failed to write activity log:', error);
+        });
+      }
     } catch (error) {
       next(error);
     }
@@ -109,7 +111,9 @@ export const apiErrorHandler: ErrorRequestHandler = (error, req, res, next): voi
   res.status(statusCode).json(payload);
 
   const userId = (req as Request & { auth?: { id?: string } }).auth?.id ?? null;
-  void logActivity({ userId, code: statusCode, message: logMessage }).catch((logError) => {
-    console.warn('Failed to write activity log:', logError);
-  });
+  if (userId) {
+    void logActivity({ userId, code: statusCode, message: logMessage }).catch((logError) => {
+      console.warn('Failed to write activity log:', logError);
+    });
+  }
 };
