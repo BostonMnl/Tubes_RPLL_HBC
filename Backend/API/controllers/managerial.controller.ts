@@ -210,9 +210,13 @@ export const getProfileId = async (
         message: 'User profile fetched successfully',
 		data: {
 			user,
+<<<<<<< HEAD
 			attendance: a
 				? { date: a.date, status: a.status }
 				: null,
+=======
+			attendance,
+>>>>>>> 50c8fa118ace7d23fe0b638a731321dbe0a17fb6
 		},
     };
 };
