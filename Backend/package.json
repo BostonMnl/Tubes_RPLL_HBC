@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:auth": "jest API/controllers/auth.controller.spec.ts"
+    "test:auth": "jest API/controllers/auth.controller.spec.ts",
+    "test:unit": "jest Testing/unit-test"
   },
   "keywords": [],
   "author": "",
