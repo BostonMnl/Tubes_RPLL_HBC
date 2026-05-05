@@ -434,6 +434,84 @@ export const reimburseServices = {
 
 };
 
+// ============ PINALTI SERVICES ============
+export const pinaltiServices = {
+  // Gunakan /penalti (bukan pinalti)
+  getAllPinalti: async () => {
+    try {
+      console.log("===================== Get All Pinalti =====================");
+      console.log("Fetching all pinalti records...");
+      const response = await fetchWithToken(`${API_BASE_URL}/penalti`);
+      console.log("Response received:", response);
+      if (!response.ok) throw new Error('Failed to fetch pinalti records');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching pinalti records:', error);
+      throw error;
+    }
+  },
+
+  // Tambahkan endpoint untuk /me (Untuk Staff/User biasa)
+  getMyPinalti: async () => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/penalti/me`);
+      if (!response.ok) throw new Error('Failed to fetch my pinalti');
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getPinaltiByUserId: async (userId: string) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/penalti/user/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch user pinalti');
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  createPinalti: async (pinaltiData: any) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/penalti`, {
+        method: 'POST',
+        // Hapus header 'Content-Type': 'application/json' jika kamu mengirim FormData (Upload Gambar)
+        body: pinaltiData, 
+      });
+      if (!response.ok) throw new Error('Failed to create pinalti');
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updatePinalti: async (pinaltiId: string, updateData: any) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/penalti/${pinaltiId}`, {
+        method: 'PUT',
+        body: updateData,
+      });
+      if (!response.ok) throw new Error('Failed to update pinalti');
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deletePinalti: async (pinaltiId: string) => {
+    try {
+      const response = await fetchWithToken(`${API_BASE_URL}/penalti/${pinaltiId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete pinalti');
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
 // ============ AUTHENTICATION SERVICES WITH JWT ============
 export const authServices = {
   login: async (email: string, password: string) => {

@@ -35,6 +35,7 @@ export default function Sidebar() {
     { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },
+    { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
   ];
 
   // Menu manager / supervisor
@@ -45,6 +46,7 @@ export default function Sidebar() {
     { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'Setting Wage', icon: <BsCashStack /> },
+    { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
   ];
 
   // Menu staff
@@ -53,6 +55,7 @@ export default function Sidebar() {
     { path: '/calendar', label: 'Calendar View', icon: <BsCalendar /> },
     { path: '/reimburse', label: 'Reimbursement', icon: <BiReceipt /> },
     { path: '/wage', label: 'My wages', icon: <BsCashStack /> },
+    { path: '/penalti', label: 'Penalties', icon: <BsPersonBadge /> },
   ];
 
   const menu = isAdmin

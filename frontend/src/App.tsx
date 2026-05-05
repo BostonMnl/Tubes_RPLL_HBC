@@ -10,6 +10,7 @@ import CalendarView from './components/leave/CalendarView';
 import WageSettings from './components/wage/WageSettings';
 import AdminProfile from './components/MyProfile';
 import ReimbursePage from './components/Reimburse/ReimbursePage';
+import Penalti from './components/Penalti/PenaltiPage';
 
 import LoginPage from './components/login/LoginPage';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="profile" element={<MyProfile />} />
         <Route path="tree" element={<ManagementTree />} />
         <Route path="qr" element={<QRGeneratorPage />} />
+        <Route path="penalti" element={<Penalti />} />
       </Route>
 
       {/* ===== MANAGER ===== */}
@@ -85,6 +87,7 @@ export default function App() {
         <Route path="wage" element={<WageSettings />} />
         <Route path="tree" element={<ManagementTree />} />
         <Route path="profile" element={<MyProfile />} />
+        <Route path="penalti" element={<Penalti />} />
       </Route>
 
       <Route
