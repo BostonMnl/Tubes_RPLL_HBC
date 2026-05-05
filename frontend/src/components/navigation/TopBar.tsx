@@ -66,9 +66,9 @@ export default function Topbar() {
             <Dropdown.Item onClick={() => navigate(`${basePath}/profile`)}>
               My Profile
             </Dropdown.Item>
-            <Dropdown.Item onClick={() => navigate(`${basePath}/settings`)}>
+            {/* <Dropdown.Item onClick={() => navigate(`${basePath}/settings`)}>
               Settings
-            </Dropdown.Item>
+            </Dropdown.Item> */}
             <Dropdown.Divider />
             <Dropdown.Item onClick={handleLogout} className="text-danger">
               Logout
