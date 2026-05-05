@@ -9,15 +9,35 @@ const JAM_MASUK_ALPHA = '00:00:00';
 const QR_ALPHA = 'AUTO-ALPHA';
 
 const padTwo = (value: number): string => String(value).padStart(2, '0');
+const WIB_TIME_ZONE = 'Asia/Jakarta';
 
-const formatDateOnly = (date: Date): string => {
-  return `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())}`;
+const getWibParts = (): { year: string; month: string; day: string } => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: WIB_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const map: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== 'literal') {
+      map[part.type] = part.value;
+    }
+  }
+
+  return { year: map.year, month: map.month, day: map.day };
+};
+
+const formatDateOnly = (): string => {
+  const parts = getWibParts();
+  return `${parts.year}-${parts.month}-${parts.day}`;
 };
 
 const getTodayRange = (): { start: Date; end: Date } => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const date = formatDateOnly();
+  const start = new Date(`${date}T00:00:00+07:00`);
+  const end = new Date(`${date}T23:59:59.999+07:00`);
   return { start, end };
 };
 
@@ -43,7 +63,7 @@ const scheduleAttendanceAlphaJob = (): void => {
         return;
       }
 
-      const date = formatDateOnly(record.absensi_dimulai);
+      const date = formatDateOnly();
       const users = await User.findAll({
         where: {
           role: { [Op.ne]: 'admin' },
