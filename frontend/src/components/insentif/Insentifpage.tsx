@@ -53,6 +53,8 @@ const defaultAddForm: AddForm = {
 export default function InsentifPage() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const currentUserId = currentUser.id || currentUser.user_id;
+  const normalizeId = (value: string | number | null | undefined) => String(value ?? '');
+  const normalizedCurrentUserId = normalizeId(currentUserId);
   const role = currentUser?.role?.toLowerCase();
   const jabatan = currentUser?.jabatan?.toLowerCase();
 
@@ -92,33 +94,63 @@ export default function InsentifPage() {
 
   const initFetch = async () => {
     setLoading(true);
-    await Promise.all([
-      fetchInsentifData(),
-      canManageOthers ? fetchSubordinates() : Promise.resolve(),
-    ]);
+    let subs: UserOption[] = [];
+    if (canManageOthers) {
+      subs = await fetchSubordinates();
+    }
+    await fetchInsentifData(subs);
     setLoading(false);
   };
 
-  const fetchInsentifData = async () => {
+  const parseInsentifResponse = (res: any): Insentif[] => res.data?.insentif || res.data || [];
+
+  const fetchInsentifData = async (subList: UserOption[] = []) => {
     try {
       if (isAdmin) {
         const res = await insentifServices.getAllInsentif();
-        const all: Insentif[] = res.data?.insentif || res.data || [];
+        const all: Insentif[] = parseInsentifResponse(res);
         setHistoryData(all);
-        setData(all.filter((x) => x.user_id !== currentUserId));
-        setMyData(all.filter((x) => x.user_id === currentUserId));
+        setData(all.filter((x) => normalizeId(x.user_id) !== normalizedCurrentUserId));
+        setMyData(all.filter((x) => normalizeId(x.user_id) === normalizedCurrentUserId));
       } else {
         const res = await insentifServices.getMyInsentif();
-        const mixed: Insentif[] = res.data?.insentif || res.data || [];
-        setMyData(mixed.filter((x) => x.user_id === currentUserId));
-        setData(mixed.filter((x) => x.user_id !== currentUserId));
+        const mine: Insentif[] = parseInsentifResponse(res);
+        setMyData(mine.filter((x) => normalizeId(x.user_id) === normalizedCurrentUserId));
+
+        if (canManageOthers) {
+          const ids = (subList.length ? subList : subordinates)
+            .map((u) => normalizeId(u.user_id))
+            .filter((id) => id && id !== normalizedCurrentUserId);
+
+          const responses = await Promise.all(
+            ids.map(async (id) => {
+              try {
+                return await insentifServices.getInsentifByUserId(id);
+              } catch (err) {
+                console.error(`Gagal memuat insentif user ${id}:`, err);
+                return null;
+              }
+            })
+          );
+
+          const subordinateData = responses.flatMap((r) =>
+            r ? parseInsentifResponse(r) : []
+          );
+          setData(
+            subordinateData.filter(
+              (x) => normalizeId(x.user_id) !== normalizedCurrentUserId
+            )
+          );
+        } else {
+          setData(mine.filter((x) => normalizeId(x.user_id) !== normalizedCurrentUserId));
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Gagal memuat data insentif');
     }
   };
 
-  const fetchSubordinates = async () => {
+  const fetchSubordinates = async (): Promise<UserOption[]> => {
     try {
       const res = await userServices.getAllUsers();
       const usersArray: UserOption[] = res.data?.user || res.data?.users || [];
@@ -127,25 +159,31 @@ export default function InsentifPage() {
       let filtered: UserOption[] = [];
 
       if (isAdmin) {
-        filtered = usersArray.filter((u) => u.user_id !== currentUserId);
+        filtered = usersArray.filter((u) => normalizeId(u.user_id) !== normalizedCurrentUserId);
 
       } else if (isManager) {
         filtered = usersArray.filter(
-          (u) => u.manager_id === currentUserId && u.user_id !== currentUserId
+          (u) =>
+            normalizeId(u.manager_id) === normalizedCurrentUserId &&
+            normalizeId(u.user_id) !== normalizedCurrentUserId
         );
 
       } else if (isSupervisor) {
 
         const directReports = usersArray.filter(
-          (u) => u.manager_id === currentUserId && u.user_id !== currentUserId
+          (u) =>
+            normalizeId(u.manager_id) === normalizedCurrentUserId &&
+            normalizeId(u.user_id) !== normalizedCurrentUserId
         );
-        const managerIds = directReports
-          .filter((u) => u.jabatan?.toLowerCase() === 'manager')
-          .map((u) => u.user_id);
+        const managerIds = new Set(
+          directReports
+            .filter((u) => u.jabatan?.toLowerCase() === 'manager')
+            .map((u) => normalizeId(u.user_id))
+        );
         const indirectReports = usersArray.filter(
           (u) =>
-            managerIds.includes(u.manager_id || '') &&
-            u.user_id !== currentUserId
+            managerIds.has(normalizeId(u.manager_id)) &&
+            normalizeId(u.user_id) !== normalizedCurrentUserId
         );
         // Gabung & deduplicate
         const combined = [...directReports, ...indirectReports];
@@ -155,8 +193,10 @@ export default function InsentifPage() {
       }
 
       setSubordinates(filtered);
+      return filtered;
     } catch (err) {
       console.error('Gagal memuat subordinates:', err);
+      return [];
     }
   };
 
@@ -271,7 +311,9 @@ export default function InsentifPage() {
 
   const getUserLabel = (item: Insentif) => {
     if (item.user?.nama) return `${item.user.nama} (${item.user.jabatan})`;
-    const foundUser = allUsers.find((u) => u.user_id === item.user_id);
+    const foundUser = allUsers.find(
+      (u) => normalizeId(u.user_id) === normalizeId(item.user_id)
+    );
     if (foundUser) return `${foundUser.nama} (${foundUser.jabatan})`;
     return `User Terhapus (${item.user_id.substring(0, 8)}...)`;
   };
@@ -279,7 +321,9 @@ export default function InsentifPage() {
   // Cek apakah item yang sedang dilihat bisa diedit/dihapus oleh user saat ini
   const canEditOrDelete = (item: Insentif): boolean => {
     if (isAdmin) return true;
-    return subordinates.some((u) => u.user_id === item.user_id);
+    return subordinates.some(
+      (u) => normalizeId(u.user_id) === normalizeId(item.user_id)
+    );
   };
 
   // ========================

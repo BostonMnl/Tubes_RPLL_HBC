@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import { Card, Modal, Button, Form, Badge, Alert, Spinner } from 'react-bootstrap';
+import { Card, Modal, Button, Form, Badge, Alert, Spinner, Col } from 'react-bootstrap';
 import { leaveServices } from '../../services/apiServices';
 
 type LeaveRequest = {
@@ -20,6 +20,22 @@ const defaultForm = {
   jenis_cuti: 'Cuti_Tahunan',
   keterangan: '',
 };
+interface LogActivity {
+  _id: string;
+  userId: string;
+  code: number;
+  message: string;
+  createdAt: string;
+}
+
+const API_BASE = 'http://localhost:3000/api';
+
+const fetchWithToken = (url: string) => {
+  const token = localStorage.getItem('token');
+  return fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
 
 export default function CalendarViewStaff() {
   const [allLeave, setAllLeave] = useState<LeaveRequest[]>([]);
@@ -36,9 +52,19 @@ export default function CalendarViewStaff() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState('');
+  const [logs, setLogs] = useState<LogActivity[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+
+
 
   useEffect(() => {
     fetchLeaves();
+
+    fetchWithToken(`${API_BASE}/log_activity/me`)
+      .then((r) => r.json())
+      .then((res) => setLogs(res.data?.logs || []))
+      .catch(console.error)
+      .finally(() => setLoadingLogs(false));
   }, []);
 
   const fetchLeaves = async () => {
@@ -70,7 +96,7 @@ export default function CalendarViewStaff() {
     end: item.tanggal_akhir,
     color:
       item.status.toLowerCase() === 'approved' ? '#28a745' :
-      item.status.toLowerCase() === 'rejected' ? '#dc3545' : '#ff6b9d',
+        item.status.toLowerCase() === 'rejected' ? '#dc3545' : '#ff6b9d',
     extendedProps: {
       nama: item.nama,
       keterangan: item.keterangan,
@@ -78,6 +104,20 @@ export default function CalendarViewStaff() {
       jenis_cuti: item.jenis_cuti,
     },
   }));
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const getCodeColor = (code: number) => {
+    if (code >= 200 && code < 300) return '#22c55e';
+    if (code >= 400 && code < 500) return '#f97316';
+    return '#ef4444';
+  };
 
   const handleEventClick = (info: any) => {
     setSelectedEvent(info.event);
@@ -322,6 +362,55 @@ export default function CalendarViewStaff() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Activity Log */}
+      <Col md={5}>
+        <Card className="border-0 shadow-sm h-100" style={{ borderRadius: 16 }}>
+          <Card.Body className="p-4">
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <span style={{ fontSize: 20 }}>📋</span>
+              <h5 className="mb-0 fw-semibold" style={{ color: '#ff3d7f' }}>Log Aktivitas</h5>
+            </div>
+
+            {loadingLogs ? (
+              <div className="text-center py-4">
+                <Spinner animation="border" style={{ color: '#ff3d7f' }} />
+              </div>
+            ) : logs.length === 0 ? (
+              <p className="text-muted text-center py-4">Belum ada aktivitas.</p>
+            ) : (
+              <div style={{ maxHeight: 380, overflowY: 'auto', paddingRight: 4 }}>
+                {logs.map((log) => (
+                  <div
+                    key={log._id}
+                    className="mb-2 p-3"
+                    style={{
+                      borderRadius: 12,
+                      background: '#fff8fb',
+                      borderLeft: `4px solid ${getCodeColor(log.code)}`,
+                    }}
+                  >
+                    <div className="d-flex justify-content-between align-items-start">
+                      <span
+                        className="fw-semibold"
+                        style={{ fontSize: 12, color: getCodeColor(log.code) }}
+                      >
+                        {log.code}
+                      </span>
+                      <span className="text-muted" style={{ fontSize: 10 }}>
+                        {formatTime(log.createdAt)}
+                      </span>
+                    </div>
+                    <div className="text-muted mt-1" style={{ fontSize: 12 }}>
+                      {log.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card.Body>
+        </Card>
+      </Col>
 
     </div>
   );

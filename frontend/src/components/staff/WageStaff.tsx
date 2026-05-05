@@ -52,7 +52,7 @@ export default function WageStaff() {
 
         setGajiList(sorted);
       } catch (err: any) {
-        setError(err.message || 'Gagal memuat data gaji');
+        setError('Gaji Belum di Input');
       } finally {
         setLoading(false);
       }
